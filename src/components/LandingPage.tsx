@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Image from 'next/image';
 import Navbar from './Navbar';
 import {
@@ -13,13 +14,24 @@ import {
   Users,
   GitBranch,
   ArrowUpRight,
-  Globe
+  Globe,
+  ArrowRight,
+  ExternalLink
 } from 'lucide-react';
 
-export default function LandingPage() {
+export default function LandingPage({ initialSection }: { initialSection?: string }) {
+  useEffect(() => {
+    if (initialSection) {
+      const element = document.querySelector(initialSection);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [initialSection]);
+
   return (
     <div className="relative w-full bg-white text-slate-900 font-sans overflow-hidden min-h-screen">
-      <Navbar />
+      <Navbar variant="dark" />
 
       {/* ── BACKGROUND GEOMETRIC ELEMENTS ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
@@ -312,6 +324,85 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── PROJECTS SECTION ── */}
+      <section id="projets" className="relative py-24 px-6 lg:px-8 max-w-7xl mx-auto" style={{ zIndex: 10 }}>
+        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+          <span className="text-xs font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+            Data Center GANDAL
+          </span>
+          <h2 className="text-3xl md:text-4xl font-black text-black tracking-tight mt-3">
+            Projets Hébergés &amp; Disponibles
+          </h2>
+          <p className="text-slate-600 text-sm md:text-base">
+            Découvrez les applications et services de haut niveau développés par les élèves-ingénieurs de l'ENSPY, actuellement déployés et supervisés en local sous le contrôle autonome des agents de GANDAL.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            {
+              title: "Portail de Supervision Multi-Agent",
+              desc: "Supervise et orchestre en temps réel les ressources physiques et virtuelles de GANDAL grâce à une architecture de 6 agents logiciels autonomes conformes aux normes FIPA.",
+              href: "/projects",
+            },
+            {
+              title: "Gestionnaire de Bibliothèque ENSPY",
+              desc: "Plateforme web centralisée facilitant la gestion, la recherche et l'emprunt d'ouvrages académiques et de mémoires de recherche pour les étudiants et enseignants de l'école.",
+              href: "/projects",
+            },
+            {
+              title: "Contrôle Intelligent de Trafic",
+              desc: "Système prédictif de régulation des feux de signalisation de Yaoundé basé sur l'analyse de flux vidéo par apprentissage profond, hébergé localement sur nos clusters.",
+              href: "/projects",
+            },
+          ].map((project, idx) => (
+            <div
+              key={idx}
+              className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:border-black transition-all duration-300 flex flex-col"
+            >
+              {/* Image */}
+              <div className="relative h-52 w-full overflow-hidden bg-slate-900">
+                <Image
+                  src="/long-hallway-with-row-servers-center.jpg"
+                  alt={project.title}
+                  fill
+                  className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+              </div>
+
+              {/* Body */}
+              <div className="p-6 flex flex-col gap-4 flex-grow">
+                <h3 className="text-lg font-black text-black group-hover:text-blue-600 transition-colors leading-snug">
+                  {project.title}
+                </h3>
+                <p className="text-slate-500 text-sm leading-relaxed flex-grow">
+                  {project.desc}
+                </p>
+                <a
+                  href={project.href}
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-black uppercase tracking-wider transition-all duration-200 group-hover:translate-x-1"
+                >
+                  Voir le projet
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Catalog CTA */}
+        <div className="text-center mt-12">
+          <a
+            href="/projects"
+            className="inline-flex items-center gap-2.5 px-8 py-4 bg-black text-white hover:bg-blue-600 font-bold rounded-xl transition-all duration-300 shadow-md shadow-slate-900/10 hover:-translate-y-0.5"
+          >
+            Explorer le Catalogue Complet
+            <ExternalLink className="w-4 h-4" />
+          </a>
         </div>
       </section>
 

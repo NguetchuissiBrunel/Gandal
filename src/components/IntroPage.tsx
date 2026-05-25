@@ -60,13 +60,13 @@ export default function IntroPage({ onComplete }: { onComplete: () => void }) {
   // contrast: 140 % → 100 %
   const contrast = Math.max(100, 140 - scrollProgress * 40);
 
-  // Text-1: visible from 0 → 0.38, guaranteed gone before text-2 appears
-  const showText1 = scrollProgress < 0.38;
-  const text1Alpha = showText1 ? Math.max(0, 1 - scrollProgress / 0.38) : 0;
+  // Text-1: fades out linearly from 0 to 0.4
+  const text1Alpha = Math.max(0, 1 - scrollProgress / 0.4);
 
-  // Text-2: appears from 0.52 → 0.80  (gap of 0.14 between the two)
-  const showText2 = scrollProgress >= 0.52;
-  const text2Alpha = showText2 ? Math.min(1, (scrollProgress - 0.52) / 0.28) : 0;
+  // Text-2: fades in linearly from 0.45 to 0.75
+  const text2Alpha = scrollProgress < 0.45
+    ? 0
+    : Math.min(1, (scrollProgress - 0.45) / 0.3);
 
   // button: appears from 0.78 → 1.0
   const btnAlpha = scrollProgress < 0.78
@@ -258,80 +258,76 @@ export default function IntroPage({ onComplete }: { onComplete: () => void }) {
         className="fixed inset-0 flex flex-col items-center justify-center px-4 pointer-events-none"
         style={{ zIndex: 10 }}
       >
-        {/* logo */}
-        <div className="absolute top-8 left-8">
-          <h1 className="text-2xl font-bold text-white tracking-wider" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
-            GANDAL
-          </h1>
-          <p className="text-xs text-blue-400 tracking-widest mt-1">DATA CENTER</p>
-        </div>
 
-        {/* text stage – both blocks absolutely-stacked; only one is mounted at a time */}
+        {/* text stage – both blocks absolutely-stacked; always rendered but opacity controlled */}
         <div className="relative w-full max-w-5xl px-6 flex items-center justify-center" style={{ minHeight: '400px' }}>
 
           {/* Text 1 – initial question */}
-          {showText1 && (
-            <div
-              suppressHydrationWarning
-              className="absolute inset-0 flex flex-col items-center justify-center text-center animate-fade-in"
-              style={{ opacity: text1Alpha, transition: 'opacity 0.12s ease-out' }}
+          <div
+            suppressHydrationWarning
+            className="absolute inset-0 flex flex-col items-center justify-center text-center"
+            style={{
+              opacity: text1Alpha,
+              visibility: text1Alpha > 0 ? 'visible' : 'hidden',
+              transition: 'opacity 0.06s ease-out, visibility 0.06s',
+            }}
+          >
+            <h2
+              className="font-black text-white leading-none tracking-tight"
+              style={{
+                fontSize: 'clamp(1.8rem, 4.5vw, 3.2rem)',
+                textShadow: '0 4px 20px rgba(0,0,0,0.85)',
+                lineHeight: 1.1,
+              }}
             >
-              <h2
-                className="font-black text-white leading-none tracking-tight"
-                style={{
-                  fontSize: 'clamp(1.8rem, 4.5vw, 3.2rem)',
-                  textShadow: '0 4px 20px rgba(0,0,0,0.85)',
-                  lineHeight: 1.1,
-                }}
+              Avez-vous jamais rêvé<br />
+              d'un point
+              <span
+                className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300"
+                style={{ fontSize: 'clamp(2rem, 5vw, 3.6rem)' }}
               >
-                Avez-vous jamais rêvé<br />
-                d'un point
-                <span
-                  className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300"
-                  style={{ fontSize: 'clamp(2rem, 5vw, 3.6rem)' }}
-                >
-                  centralisé pour vos projets ?
-                </span>
-              </h2>
-            </div>
-          )}
+                centralisé pour vos projets ?
+              </span>
+            </h2>
+          </div>
 
           {/* Text 2 – welcome */}
-          {showText2 && (
-            <div
-              suppressHydrationWarning
-              className="absolute inset-0 flex flex-col items-center justify-center text-center"
-              style={{ opacity: text2Alpha, transition: 'opacity 0.12s ease-out' }}
-            >
-              <div style={{ textShadow: '0 4px 20px rgba(0,0,0,0.9)' }}>
-                <h2
-                  className="font-black text-white leading-none"
-                  style={{ fontSize: 'clamp(1.6rem, 4vw, 2.8rem)' }}
+          <div
+            suppressHydrationWarning
+            className="absolute inset-0 flex flex-col items-center justify-center text-center"
+            style={{
+              opacity: text2Alpha,
+              visibility: text2Alpha > 0 ? 'visible' : 'hidden',
+              transition: 'opacity 0.06s ease-out, visibility 0.06s',
+            }}
+          >
+            <div style={{ textShadow: '0 4px 20px rgba(0,0,0,0.9)' }}>
+              <h2
+                className="font-black text-white leading-none"
+                style={{ fontSize: 'clamp(1.6rem, 4vw, 2.8rem)' }}
+              >
+                Bienvenue sur
+                <span
+                  className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300"
+                  style={{ fontSize: 'clamp(2.5rem, 7vw, 5rem)', lineHeight: 1 }}
                 >
-                  Bienvenue sur
-                  <span
-                    className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300"
-                    style={{ fontSize: 'clamp(2.5rem, 7vw, 5rem)', lineHeight: 1 }}
-                  >
-                    GANDAL
-                  </span>
-                </h2>
-                <p className="mt-4 text-gray-300 font-medium" style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}>
-                  Votre infrastructure centralisée
-                </p>
-              </div>
+                  GANDAL
+                </span>
+              </h2>
+              <p className="mt-4 text-gray-300 font-medium" style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}>
+                Votre infrastructure centralisée
+              </p>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Explorez button */}
+        {/* Explorer link */}
         <div
           suppressHydrationWarning
           className="absolute pointer-events-auto"
           style={{
             bottom: '80px',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            left: 'calc(50% - 60px)',
             opacity: btnAlpha,
             visibility: btnAlpha > 0 ? 'visible' : 'hidden',
             transition: 'opacity 0.15s ease-out',
@@ -339,18 +335,20 @@ export default function IntroPage({ onComplete }: { onComplete: () => void }) {
         >
           <button
             onClick={handleComplete}
-            className="text-white font-bold rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 tracking-widest uppercase"
-            style={{
-              background: 'linear-gradient(to right, #3b82f6, #22d3ee)',
-              boxShadow: '0 0 0 rgba(59,130,246,0)',
-              fontSize: 'clamp(1.1rem, 2.5vw, 1.6rem)',
-              padding: 'clamp(1rem, 2vh, 1.4rem) clamp(2.5rem, 6vw, 5rem)',
-              letterSpacing: '0.15em',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 30px rgba(59,130,246,0.5)')}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 0 0 rgba(59,130,246,0)')}
+            className="group cursor-pointer bg-transparent border-none p-0 flex flex-col items-start gap-1"
           >
-            Explorer
+            <span
+              className="text-white group-hover:text-blue-400 font-semibold tracking-[0.3em] uppercase transition-colors duration-300"
+              style={{
+                fontSize: 'clamp(1rem, 1.8vw, 1.3rem)',
+                textShadow: '0 0 30px rgba(255,255,255,0.5), 0 2px 16px rgba(0,0,0,0.8)',
+              }}
+            >
+              Explorer
+            </span>
+            <span
+              className="block h-[1.5px] bg-white/50 group-hover:bg-blue-400 w-[40%] group-hover:w-[140%] transition-all duration-400 ease-out"
+            />
           </button>
         </div>
 
