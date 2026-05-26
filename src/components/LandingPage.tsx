@@ -420,10 +420,10 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
-            { name: "Pr. Baatchakui Bernabé", title: "Directeur de Projet", role: "Supervision Scientifique" },
-            { name: "Ing. Foupouagnigni Nassair", title: "Encadreur Technique", role: "Architecture Réseau & Cluster" },
-            { name: "Ing. Tedongmouo Abel", title: "Encadreur Technique", role: "Systèmes Multi-Agents" },
-            { name: "Ing. Mbo Alain", title: "Encadreur Technique", role: "Virtualisation & Proxmox" },
+            { name: "Pr. Batchakui Bernabé", title: "Directeur de Projet", role: "Supervision" },
+            { name: "Ing. Foupouagnigni Nassair", title: "Encadreur Technique", role: "Assistant Supervision " },
+            { name: "Ing. Tedongmouo Abel", title: "Encadreur Technique", role: "Assistant Supervision" },
+            { name: "Ing. Mbo Alain", title: "Encadreur Technique", role: "Assistant Supervision" },
           ].map((member, idx) => (
             <div key={idx} className="p-6 rounded-2xl bg-white border border-slate-200 text-center space-y-2">
               <p className="font-black text-lg text-black">{member.name}</p>
