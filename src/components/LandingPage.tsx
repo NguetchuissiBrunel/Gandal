@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import Navbar from './Navbar';
 import {
   Shield,
@@ -31,7 +32,7 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
 
   return (
     <div className="relative w-full bg-white text-slate-900 font-sans overflow-hidden min-h-screen">
-      <Navbar variant="dark" />
+      <Navbar />
 
       {/* ── BACKGROUND GEOMETRIC ELEMENTS ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
@@ -124,12 +125,12 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-md pt-4">
-            <button className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-black transition-all duration-300 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5">
+            <Link href="/signup" className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-black transition-all duration-300 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 text-center flex items-center justify-center">
               S'inscrire ici
-            </button>
-            <button className="px-8 py-4 border-2 border-black text-black hover:bg-black hover:text-white font-bold rounded-xl transition-all duration-200">
+            </Link>
+            <Link href="/login" className="px-8 py-4 border-2 border-black text-black hover:bg-black hover:text-white font-bold rounded-xl transition-all duration-200 text-center flex items-center justify-center">
               Connexion
-            </button>
+            </Link>
           </div>
 
           {/* Cameroon Academic Identity */}
@@ -455,10 +456,13 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <button className="px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2">
+              <Link
+                href="/signup"
+                className="px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+              >
                 Nous Rejoindre
                 <ArrowUpRight className="w-4 h-4" />
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -478,7 +482,7 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
             <div className="flex items-center gap-3">
               <div className="relative w-8 h-8 rounded-lg bg-white overflow-hidden shrink-0">
                 <Image
-                  src="/WhatsApp Image 2026-05-07 at 18.59.16.jpeg"
+                  src="/logo-removebg-preview (1).png"
                   alt="Gandal Project Logo"
                   fill
                   className="object-contain p-0.5"
@@ -520,7 +524,17 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 pt-8 flex flex-col md:flex-row items-center justify-between text-slate-500 text-xs font-medium gap-4">
           <p>© 2026 GANDAL Data Center • ENSPY Yaoundé. Tous droits réservés.</p>
-          <div className="flex gap-6">
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('gandal_intro_seen');
+                window.location.reload();
+              }}
+              className="text-slate-500 hover:text-blue-400 transition-colors cursor-pointer bg-transparent border-none p-0 text-xs font-bold uppercase tracking-wider"
+            >
+              Revoir l'intro
+            </button>
+            <span className="text-slate-700">|</span>
             <span className="text-slate-600">Projet de promotion GI27</span>
           </div>
         </div>

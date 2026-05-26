@@ -45,7 +45,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-slate-900 font-sans pb-24 overflow-x-hidden">
-      <Navbar variant="light" />
+      <Navbar />
 
       {/* Subtle background blobs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>

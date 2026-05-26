@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GANDAL — Plateforme Data Center ENSPY
 
-## Getting Started
+> Infrastructure locale de virtualisation et d'orchestration multi-agent pour les projets académiques du Département de Génie Informatique de l'École Nationale Supérieure Polytechnique de Yaoundé (ENSPY) — Université de Yaoundé I.
 
-First, run the development server:
+---
+
+## 🎯 Présentation
+
+**GANDAL** est une plateforme académique de gestion centralisée de projets étudiants. Elle repose sur un système multi-agent (conforme aux spécifications FIPA) permettant le déploiement, la supervision et la migration de machines virtuelles au sein d'un data center local dédié au département de Génie Informatique.
+
+---
+
+## 🛠️ Stack Technique
+
+| Couche | Technologie |
+|---|---|
+| Framework | Next.js 16 (App Router + Turbopack) |
+| UI | React 19 + Tailwind CSS |
+| Langage | TypeScript |
+| Polices | Geist Sans / Geist Mono (Google Fonts) |
+| Icônes | Lucide React |
+
+---
+
+## 🚀 Démarrage Rapide
 
 ```bash
+# Installer les dépendances
+npm install
+
+# Lancer le serveur de développement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📁 Structure du Projet
 
-## Learn More
+```
+src/
+├── app/
+│   ├── layout.tsx          # Layout racine + métadonnées SEO
+│   ├── page.tsx            # Gestionnaire intro → landing
+│   ├── login/page.tsx      # Page de connexion
+│   ├── signup/page.tsx     # Page d'inscription (2 étapes)
+│   ├── projects/page.tsx   # Catalogue des projets
+│   └── intro/page.tsx      # Route directe vers l'introduction
+├── components/
+│   ├── IntroPage.tsx       # Séquence d'introduction cinématique
+│   ├── LandingPage.tsx     # Page d'accueil principale
+│   └── Navbar.tsx          # Navigation globale (thème blanc)
+public/
+│   └── logo-removebg-preview (1).png  # Logo officiel GANDAL
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 👥 Acteurs du Système
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Étudiants** — Déposent leurs projets et accèdent aux environnements virtuels.
+- **Enseignants** — Supervisent et évaluent les projets déployés.
+- **Administrateurs** — Gèrent les ressources et les allocations du data center.
 
-## Deploy on Vercel
+## 🤖 Agents du Système Multi-Agent
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Agent | Rôle |
+|---|---|
+| Agent de Déploiement | Instancie les machines virtuelles |
+| Agent de Supervision | Monitore l'état du système en temps réel |
+| Agent de Migration | Assure l'équilibrage et la haute disponibilité |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 🏫 Institution
+
+**École Nationale Supérieure Polytechnique de Yaoundé (ENSPY)**  
+Département de Génie Informatique — Promotion **GI27**  
+Université de Yaoundé I
+
+---
+
+© 2026 GANDAL Data Center • ENSPY Yaoundé. Tous droits réservés.
