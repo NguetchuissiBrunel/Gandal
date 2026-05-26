@@ -79,9 +79,12 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
           {!minimal && (
             <>
               {/* Navigation Links */}
-              <div className="hidden md:flex items-center gap-8">
-                <Link href="/projects" className={`${linkClass} text-blue-600 font-extrabold`}>
+              <div className="hidden md:flex items-center gap-6">
+                <Link href="/projects" className={`${linkClass}`}>
                   Catalogue Projets
+                </Link>
+                <Link href="/dashboard/teacher" className={`${linkClass} text-blue-600 font-extrabold`}>
+                  Espace Enseignant
                 </Link>
               </div>
 
