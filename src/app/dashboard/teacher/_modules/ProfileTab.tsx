@@ -17,7 +17,7 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
   const [draft, setDraft] = useState<TeacherProfile>(profile);
 
   const displayInitials = profile.username ? profile.username.substring(0, 2).toUpperCase() : 'TE';
-  const draftInitials   = draft.username ? draft.username.substring(0, 2).toUpperCase() : 'TE';
+  const draftInitials = draft.username ? draft.username.substring(0, 2).toUpperCase() : 'TE';
 
   const handleEdit = () => {
     setDraft(profile);
@@ -49,19 +49,9 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
       {/* ── EN-TÊTE IDENTITAIRE ── */}
       <div className="px-8 pt-10 pb-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl border-2 border-black bg-slate-900 flex items-center justify-center shrink-0 select-none">
-            <span className="text-xl font-black text-white tracking-wider">
-              {isEditing ? draftInitials : displayInitials}
-            </span>
-          </div>
+
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Fiche Académique Enseignant</p>
-            <h2 className="text-xl font-black text-black tracking-tight leading-none">
-              {isEditing ? draft.username : profile.username}
-            </h2>
-            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">
-              {isEditing ? draft.role : profile.role}
-            </p>
+            <h2 className="text-xl font-black text-black tracking-tight uppercase leading-none">Fiche Académique Enseignant</h2>
           </div>
         </div>
 
@@ -71,7 +61,7 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
             onClick={handleEdit}
             className="shrink-0 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-sm hover:shadow-md"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
             Modifier le profil
           </button>
         ) : (
@@ -88,7 +78,7 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
               type="submit"
               className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm hover:shadow-md"
             >
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
               Enregistrer
             </button>
           </div>
@@ -103,8 +93,8 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
             <FieldBlock icon={<User className="w-3.5 h-3.5 text-slate-400" />} title="Identité & Grade">
               {[
                 { label: 'Nom d\'utilisateur', value: profile.username },
-                { label: 'Adresse email',      value: profile.email    },
-                { label: 'Fonction / Rôle',    value: profile.role     },
+                { label: 'Adresse email', value: profile.email },
+                { label: 'Fonction / Rôle', value: profile.role },
               ]}
             </FieldBlock>
           </div>
@@ -114,10 +104,10 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <EditBlock icon={<User className="w-3.5 h-3.5 text-slate-400" />} title="Identité & Grade">
                 {([
-                  { label: 'Nom d\'utilisateur', key: 'username' as const, type: 'text'  },
-                  { label: 'Adresse email',      key: 'email'    as const, type: 'email' },
-                  { label: 'Mot de passe',       key: 'password' as const, type: 'password' },
-                  { label: 'Fonction / Rôle',    key: 'role'     as const, type: 'text'  },
+                  { label: 'Nom d\'utilisateur', key: 'username' as const, type: 'text' },
+                  { label: 'Adresse email', key: 'email' as const, type: 'email' },
+                  { label: 'Mot de passe', key: 'password' as const, type: 'password' },
+                  { label: 'Fonction / Rôle', key: 'role' as const, type: 'text' },
                 ] as const).map(({ label, key, type }) => (
                   <EditField key={key} label={label} type={type} value={draft[key] || ''} onChange={set(key)} />
                 ))}
@@ -135,9 +125,9 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'VMs Actives',          count: '14',            unit: 'Machines', accent: 'bg-blue-600'   },
-              { label: 'Projets Validés',       count: '8',             unit: 'Projets',  accent: 'bg-emerald-500'},
-              { label: 'Demandes en attente',   count: `${pendingCount}`, unit: 'Requêtes', accent: 'bg-amber-500' },
+              { label: 'VMs Actives', count: '14', unit: 'Machines', accent: 'bg-blue-600' },
+              { label: 'Projets Validés', count: '8', unit: 'Projets', accent: 'bg-emerald-500' },
+              { label: 'Demandes en attente', count: `${pendingCount}`, unit: 'Requêtes', accent: 'bg-amber-500' },
             ].map((stat, idx) => (
               <div key={idx} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <div className={`h-1.5 w-full ${stat.accent}`} />
