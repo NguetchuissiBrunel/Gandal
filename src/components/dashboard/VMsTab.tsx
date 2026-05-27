@@ -147,7 +147,7 @@ export default function VMsTab({
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 hover:-translate-y-0.5"
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:-translate-y-0.5"
         >
           <Plus className="w-4 h-4" />
           Créer une VM
@@ -162,7 +162,7 @@ export default function VMsTab({
             placeholder="Rechercher par nom, IP, projet..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all"
           />
         </div>
 
@@ -172,7 +172,7 @@ export default function VMsTab({
               key={tab}
               onClick={() => setFilter(tab)}
               className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${filter === tab
-                  ? 'bg-white text-blue-600 border border-gray-200 shadow-sm'
+                  ? 'bg-white text-emerald-600 border border-gray-200 shadow-sm'
                   : 'text-gray-500 hover:text-gray-800'
                 }`}
             >
@@ -188,9 +188,9 @@ export default function VMsTab({
             <div
               key={vm.id}
               className={`group bg-white rounded-3xl border transition-all duration-300 flex flex-col justify-between shadow-sm overflow-hidden ${vm.status === 'Active'
-                  ? 'border-gray-200 hover:border-blue-400 hover:shadow-lg'
+                  ? 'border-gray-200 hover:border-emerald-400 hover:shadow-lg'
                   : vm.status === 'En cours'
-                    ? 'border-blue-300 animate-pulse'
+                    ? 'border-emerald-300 animate-pulse'
                     : 'border-gray-200 opacity-80 hover:opacity-100 hover:shadow-md'
                 }`}
             >
@@ -198,7 +198,7 @@ export default function VMsTab({
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${vm.status === 'Active'
-                        ? 'bg-blue-50 text-blue-600 border-blue-100'
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         : 'bg-gray-50 text-gray-500 border-gray-200'
                       }`}>
                       <Server className="w-5 h-5" />
@@ -217,7 +217,7 @@ export default function VMsTab({
                       ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                       : vm.status === 'Arrêtée'
                         ? 'bg-gray-100 text-gray-500 border-gray-200'
-                        : 'bg-blue-50 text-blue-600 border-blue-100'
+                        : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                     }`}>
                     {vm.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />}
                     {vm.status === 'En cours' && <RotateCw className="w-2.5 h-2.5 animate-spin shrink-0" />}
@@ -259,7 +259,7 @@ export default function VMsTab({
                   <span className={`font-bold px-2 py-0.5 rounded ${vm.handover === 'Prêt'
                       ? 'bg-emerald-50 text-emerald-600'
                       : vm.handover === 'En cours'
-                        ? 'bg-blue-50 text-blue-600'
+                        ? 'bg-emerald-50 text-emerald-600'
                         : 'bg-gray-100 text-gray-400'
                     }`}>
                     {vm.handover}
@@ -352,7 +352,7 @@ export default function VMsTab({
           <div className="bg-white w-full max-w-lg rounded-3xl border border-gray-200 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2.5">
-                <Server className="w-5 h-5 text-blue-600" />
+                <Server className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-base font-black text-gray-900 uppercase tracking-wider">
                   Provisionner une machine virtuelle
                 </h3>
@@ -383,7 +383,7 @@ export default function VMsTab({
                   placeholder="ex. vm-supervision-sma"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full bg-gray-50 text-gray-900 placeholder-gray-400 text-xs border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
+                  className="w-full bg-gray-50 text-gray-900 placeholder-gray-400 text-xs border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all"
                 />
                 <span className="text-[10px] text-gray-500 block font-medium">Lettres minuscules, chiffres et tirets uniquement.</span>
               </div>
@@ -404,7 +404,7 @@ export default function VMsTab({
                       type="button"
                       onClick={() => setFormOs(osItem.name)}
                       className={`p-3 border rounded-2xl text-left transition-all ${formOs === osItem.name
-                          ? 'border-blue-600 bg-blue-50/20'
+                          ? 'border-emerald-600 bg-emerald-50/20'
                           : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
                         }`}
                     >
@@ -422,7 +422,7 @@ export default function VMsTab({
                 <select
                   value={formProject}
                   onChange={(e) => setFormProject(e.target.value)}
-                  className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all text-xs"
+                  className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all text-xs"
                 >
                   <option value="">Aucun projet spécifique</option>
                   <option value="Portail de Supervision Multi-Agent">Portail de Supervision Multi-Agent</option>
@@ -439,7 +439,7 @@ export default function VMsTab({
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-gray-700">Processeur (vCPU)</span>
-                    <span className="text-blue-600">{formCpu} Cores</span>
+                    <span className="text-emerald-600">{formCpu} Cores</span>
                   </div>
                   <input
                     type="range"
@@ -448,7 +448,7 @@ export default function VMsTab({
                     step="1"
                     value={formCpu}
                     onChange={(e) => setFormCpu(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                   />
                   <div className="flex justify-between text-[9px] text-gray-400 font-bold">
                     <span>1 Core</span><span>2 Cores</span><span>3 Cores</span><span>4 Cores (max par VM)</span>
@@ -458,7 +458,7 @@ export default function VMsTab({
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-gray-700">Mémoire Vive (RAM)</span>
-                    <span className="text-blue-600">{formRam} Go</span>
+                    <span className="text-emerald-600">{formRam} Go</span>
                   </div>
                   <input
                     type="range"
@@ -467,7 +467,7 @@ export default function VMsTab({
                     step="1"
                     value={formRam}
                     onChange={(e) => setFormRam(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                   />
                   <div className="flex justify-between text-[9px] text-gray-400 font-bold">
                     <span>2 Go</span><span>4 Go</span><span>6 Go</span><span>8 Go (max par VM)</span>
@@ -477,7 +477,7 @@ export default function VMsTab({
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-gray-700">Stockage SSD</span>
-                    <span className="text-blue-600">{formDisk} Go</span>
+                    <span className="text-emerald-600">{formDisk} Go</span>
                   </div>
                   <input
                     type="range"
@@ -486,35 +486,11 @@ export default function VMsTab({
                     step="10"
                     value={formDisk}
                     onChange={(e) => setFormDisk(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                   />
                   <div className="flex justify-between text-[9px] text-gray-400 font-bold">
                     <span>20 Go</span><span>40 Go</span><span>60 Go</span><span>80 Go</span><span>100 Go (max par VM)</span>
                   </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-2.5 text-xs">
-                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">
-                  Simulation d'impact des quotas de projet
-                </span>
-                <div className="flex justify-between items-center text-gray-600 font-medium">
-                  <span>Processeur (Total projet) :</span>
-                  <span className={currentUsage.cpu + formCpu > quotaLimits.cpu ? 'text-red-500 font-bold' : 'text-gray-800 font-semibold'}>
-                    {currentUsage.cpu} + {formCpu} = {currentUsage.cpu + formCpu} / {quotaLimits.cpu} Cores
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-gray-600 font-medium">
-                  <span>Mémoire RAM (Total projet) :</span>
-                  <span className={currentUsage.ram + formRam > quotaLimits.ram ? 'text-red-500 font-bold' : 'text-gray-800 font-semibold'}>
-                    {currentUsage.ram} + {formRam} = {currentUsage.ram + formRam} / {quotaLimits.ram} Go
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-gray-600 font-medium">
-                  <span>Stockage Disque (Total projet) :</span>
-                  <span className={currentUsage.disk + formDisk > quotaLimits.disk ? 'text-red-500 font-bold' : 'text-gray-800 font-semibold'}>
-                    {currentUsage.disk} + {formDisk} = {currentUsage.disk + formDisk} / {quotaLimits.disk} Go
-                  </span>
                 </div>
               </div>
 
@@ -528,7 +504,7 @@ export default function VMsTab({
                 </button>
                 <button
                   type="submit"
-                  className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-md shadow-blue-500/10"
+                  className="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-md shadow-emerald-500/10"
                 >
                   Valider la création
                 </button>
