@@ -38,11 +38,10 @@ const StepIndicator = ({ step }: { step: 1 | 2 }) => (
   <div className="flex items-center justify-center gap-0 w-full mb-8 select-none">
     {/* Boule gauche */}
     <div
-      className={`w-4 h-4 rounded-full border-2 z-10 transition-all duration-500 ${
-        step >= 1
+      className={`w-4 h-4 rounded-full border-2 z-10 transition-all duration-500 ${step >= 1
           ? 'bg-blue-600 border-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)]'
           : 'bg-white border-slate-300'
-      }`}
+        }`}
     />
 
     {/* Canal gauche (rempli = étape 2) */}
@@ -55,11 +54,10 @@ const StepIndicator = ({ step }: { step: 1 | 2 }) => (
 
     {/* Boule droite */}
     <div
-      className={`w-4 h-4 rounded-full border-2 z-10 transition-all duration-500 ${
-        step >= 2
+      className={`w-4 h-4 rounded-full border-2 z-10 transition-all duration-500 ${step >= 2
           ? 'bg-blue-600 border-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)]'
           : 'bg-white border-slate-300'
-      }`}
+        }`}
     />
   </div>
 );
@@ -165,7 +163,7 @@ export default function SignupPage() {
         <Link href="/" className="flex flex-col items-center mb-6 group cursor-pointer">
           <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-slate-200 bg-white p-1 mb-3 shadow-md shadow-slate-100 transition-transform duration-300 group-hover:scale-105">
             <Image
-              src="/logo-removebg-preview (1).png"
+              src="/logo.png"
               alt="Gandal Logo"
               fill
               className="object-contain p-1"
@@ -372,11 +370,10 @@ export default function SignupPage() {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-600 block">Confirmation</label>
                   {passwordsMatch !== null && (
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1 ${
-                      passwordsMatch
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1 ${passwordsMatch
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
+                      }`}>
                       {passwordsMatch ? 'Match ✓' : 'Différent ✗'}
                     </span>
                   )}

@@ -13,7 +13,7 @@ interface NavbarProps {
 export default function Navbar({ minimal = false, onTransitionToLanding }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
-  const isLoginPage  = pathname === '/login';
+  const isLoginPage = pathname === '/login';
   const isSignupPage = pathname === '/signup';
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
           >
             <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-200 transition-transform duration-300 group-hover:scale-105 bg-white">
               <Image
-                src="/logo-removebg-preview (1).png"
+                src="/logo.png"
                 alt="Gandal Logo"
                 fill
                 className="object-contain p-0.5"
@@ -82,9 +82,6 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
               <div className="hidden md:flex items-center gap-6">
                 <Link href="/projects" className={`${linkClass}`}>
                   Catalogue Projets
-                </Link>
-                <Link href="/dashboard/teacher" className={`${linkClass} text-blue-600 font-extrabold`}>
-                  Espace Enseignant
                 </Link>
               </div>
 

@@ -147,7 +147,7 @@ const INITIAL_AUTRES: AutreRequete[] = [
 ];
 
 const STATUT_BADGE: Record<'en attente' | 'acceptée' | 'rejetée', string> = {
-  'en attente': 'bg-blue-50 text-blue-700 border border-blue-200',
+  'en attente': 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   acceptée: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   rejetée: 'bg-red-50 text-red-600 border border-red-200',
 };
@@ -188,21 +188,21 @@ export default function RequestsPanel() {
   return (
     <div className="space-y-6">
 
-      {/* ── Sous-tabs ── */}
-      <div className="flex gap-6 border-b border-slate-100">
+      {/* ── Sous-tabs (Design Pilule Premium Indigo) ── */}
+      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50 max-w-xl">
         {SUB_TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`pb-3 text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`flex-1 min-w-[120px] py-2.5 px-4 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === tab.key
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-white/40'
             }`}
           >
             {tab.label}
             {tab.badge > 0 && (
-              <span className="text-xs font-black bg-blue-600 text-white rounded-full px-2 py-0.5">
+              <span className="text-[10px] font-black bg-indigo-600 text-white rounded-full px-2 py-0.5">
                 {tab.badge}
               </span>
             )}
@@ -260,7 +260,7 @@ export default function RequestsPanel() {
                 <div className="flex gap-2 pt-4 border-t border-slate-100">
                   <button
                     onClick={() => handleCreation(req.id, 'acceptée')}
-                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-2 transition hover:-translate-y-0.5 cursor-pointer"
+                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-2 transition hover:-translate-y-0.5 cursor-pointer"
                   >
                     <CheckCircle2 size={13} /> Accepter
                   </button>
@@ -307,7 +307,7 @@ export default function RequestsPanel() {
                 <div className="flex gap-2 pt-4 border-t border-slate-100">
                   <button
                     onClick={() => handleSuppression(req.id, 'acceptée')}
-                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-2 transition hover:-translate-y-0.5 cursor-pointer"
+                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-2 transition hover:-translate-y-0.5 cursor-pointer"
                   >
                     <CheckCircle2 size={13} /> Accepter
                   </button>
@@ -345,8 +345,8 @@ export default function RequestsPanel() {
               </div>
 
               {req.reponse && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">Réponse envoyée</p>
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 mb-1">Réponse envoyée</p>
                   <p className="text-sm text-slate-700 leading-relaxed">{req.reponse}</p>
                 </div>
               )}
@@ -360,12 +360,12 @@ export default function RequestsPanel() {
                         value={replyDraft[req.id] || ''}
                         onChange={e => setReplyDraft(prev => ({ ...prev, [req.id]: e.target.value }))}
                         placeholder="Rédigez votre réponse..."
-                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none transition"
+                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none transition"
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleReply(req.id)}
-                          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-2 transition hover:-translate-y-0.5 cursor-pointer"
+                           onClick={() => handleReply(req.id)}
+                          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-2 transition hover:-translate-y-0.5 cursor-pointer"
                         >
                           <Send size={12} /> Envoyer
                         </button>

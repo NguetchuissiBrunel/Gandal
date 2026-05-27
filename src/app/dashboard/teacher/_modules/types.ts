@@ -7,6 +7,19 @@ export interface TeacherProfile {
   role: string;
 }
 
+export interface DeployedVm {
+  id: string;
+  nom: string;
+  iso: string;
+  ram: string;
+  rom: string;
+  cpu: string;
+  mode: string;
+  ip: string;
+  lien: string;
+  createdAt: string;
+}
+
 export interface AccountRequest {
   id: string; // for internal tracking
   nom: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, GraduationCap, Building2, X } from 'lucide-react';
+import { Users, Building2, X, CheckCircle, XCircle } from 'lucide-react';
 import Screw3D from '@/components/Screw3D';
 import type { AccountRequest, ShowToastFn } from './types';
 
@@ -55,15 +55,23 @@ export default function InscriptionsTab({ requests, onApprove, onReject }: Inscr
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 self-end md:self-center">
+                <div className="flex items-center gap-2 self-end md:self-center">
                   <button onClick={() => setSelected(req)} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
                     Détails
                   </button>
-                  <button onClick={() => approve(req)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
-                    Accepter
+                  <button
+                    onClick={() => approve(req)}
+                    title="Approuver"
+                    className="w-9 h-9 flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:scale-110"
+                  >
+                    <CheckCircle className="w-4.5 h-4.5" />
                   </button>
-                  <button onClick={() => reject(req)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
-                    Rejeter
+                  <button
+                    onClick={() => reject(req)}
+                    title="Rejeter"
+                    className="w-9 h-9 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:scale-110"
+                  >
+                    <XCircle className="w-4.5 h-4.5" />
                   </button>
                 </div>
               </div>
@@ -109,10 +117,12 @@ export default function InscriptionsTab({ requests, onApprove, onReject }: Inscr
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => reject(selected)} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
+              <button onClick={() => reject(selected)} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                <XCircle className="w-4 h-4" />
                 Rejeter
               </button>
-              <button onClick={() => approve(selected)} className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
+              <button onClick={() => approve(selected)} className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                <CheckCircle className="w-4 h-4" />
                 Accepter
               </button>
             </div>

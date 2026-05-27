@@ -28,7 +28,7 @@ export default function AdminProfile() {
   };
 
   const inputClass =
-    'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 transition bg-white';
+    'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition bg-white';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -39,7 +39,7 @@ export default function AdminProfile() {
 
         {/* Avatar + nom + badge */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-md">
+          <div className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-md">
             SA
           </div>
           <div className="space-y-1.5">
@@ -154,7 +154,7 @@ export default function AdminProfile() {
           {/* Bouton Enregistrer */}
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-3 transition hover:-translate-y-0.5 cursor-pointer mt-2"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold tracking-wider uppercase rounded-xl px-4 py-3 transition hover:-translate-y-0.5 cursor-pointer mt-2"
           >
             {saved ? '✓ Modifications enregistrées' : 'Enregistrer'}
           </button>

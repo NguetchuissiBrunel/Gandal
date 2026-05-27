@@ -151,7 +151,7 @@ export default function VMMonitoring() {
       {/* ── Cartes métriques ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
             <Server size={22} />
           </div>
           <div>
@@ -164,7 +164,7 @@ export default function VMMonitoring() {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
             <Cpu size={22} />
           </div>
           <div>
@@ -176,7 +176,7 @@ export default function VMMonitoring() {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
             <HardDrive size={22} />
           </div>
           <div>
@@ -200,7 +200,7 @@ export default function VMMonitoring() {
               </div>
               <div className="bg-slate-100 rounded-full h-3 w-full">
                 <div
-                  className="bg-blue-600 rounded-full h-3 transition-all"
+                  className="bg-indigo-600 rounded-full h-3 transition-all"
                   style={{ width: `${bar.value}%` }}
                 />
               </div>

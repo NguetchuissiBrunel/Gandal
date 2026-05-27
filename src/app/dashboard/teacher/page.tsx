@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Screw3D from '@/components/Screw3D';
 import { User, Users, Server, PlusCircle, BookOpen, ArrowLeft } from 'lucide-react';
 
-import type { TeacherProfile, AccountRequest, VmRequest, Publication, ToastType } from './_modules/types';
+import type { TeacherProfile, AccountRequest, VmRequest, Publication, DeployedVm, ToastType } from './_modules/types';
 import ProfileTab from './_modules/ProfileTab';
 import InscriptionsTab from './_modules/InscriptionsTab';
 import VmsTab from './_modules/VmsTab';
@@ -40,10 +40,11 @@ export default function TeacherDashboard() {
     password: '',
     role: 'Directeur de Projet'
   });
-  
+
   const [accountRequests, setAccountRequests] = useState(INITIAL_ACCOUNT_REQUESTS);
   const [vmRequests, setVmRequests] = useState(INITIAL_VM_REQUESTS);
   const [publications, setPublications] = useState(INITIAL_PUBLICATIONS);
+  const [deployedVms, setDeployedVms] = useState<DeployedVm[]>([]);
 
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
@@ -56,7 +57,7 @@ export default function TeacherDashboard() {
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-slate-900 font-sans pb-24 overflow-x-hidden">
-      
+
       {/* ── ARRIÈRE-PLAN GEOMETRIQUE ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
         <div className="absolute -top-[150px] -right-[150px] w-[500px] h-[500px] rounded-full bg-slate-200/50 border border-slate-300/60" />
@@ -66,9 +67,8 @@ export default function TeacherDashboard() {
 
       {/* --- TOAST --- */}
       {toast && (
-        <div className={`fixed bottom-8 right-8 z-50 px-6 py-4 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 transition-all duration-300 animate-slide-up ${
-          toast.type === 'success' ? 'bg-emerald-500 text-white' : toast.type === 'danger' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'
-        }`}>
+        <div className={`fixed bottom-8 right-8 z-50 px-6 py-4 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 transition-all duration-300 animate-slide-up ${toast.type === 'success' ? 'bg-emerald-500 text-white' : toast.type === 'danger' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'
+          }`}>
           <span className="font-black text-sm uppercase">{toast.type === 'success' ? '✓ Succès' : toast.type === 'danger' ? '⚠ Alerte' : 'ℹ Info'} :</span>
           <span className="text-sm font-semibold">{toast.message}</span>
         </div>
@@ -78,7 +78,7 @@ export default function TeacherDashboard() {
       <header className="relative w-full bg-white border-b border-slate-200 py-6 px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-4" style={{ zIndex: 10 }}>
         <div className="flex items-center gap-4">
           <Link href="/" className="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-200 bg-white p-0.5 shrink-0 hover:scale-105 transition-transform duration-200">
-            <Image src="/logo-removebg-preview (1).png" alt="Gandal Logo" fill className="object-contain p-0.5" />
+            <Image src="/logo.png" alt="Gandal Logo" fill className="object-contain p-0.5" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function TeacherDashboard() {
 
       {/* --- MAIN GRID LAYOUT --- */}
       <main className="relative max-w-7xl mx-auto px-4 lg:px-8 mt-12 grid grid-cols-1 lg:grid-cols-4 gap-8" style={{ zIndex: 10 }}>
-        
+
         {/* ── LEFT TACTICAL SIDEBAR ── */}
         <aside className="lg:col-span-1 space-y-6">
           <div className="relative bg-white border border-slate-200 rounded-2xl p-6 pb-12 shadow-sm transition-shadow duration-300">
@@ -107,7 +107,7 @@ export default function TeacherDashboard() {
             {/* Profile Summary */}
             <div className="text-center pt-4 pb-6 border-b border-slate-100 flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-black bg-blue-50 flex items-center justify-center mb-4 select-none">
-                <span className="text-2xl font-black text-blue-600">{profile.username ? profile.username.substring(0,2).toUpperCase() : 'TE'}</span>
+                <span className="text-2xl font-black text-blue-600">{profile.username ? profile.username.substring(0, 2).toUpperCase() : 'TE'}</span>
               </div>
               <h3 className="font-black text-slate-900 text-base leading-tight">{profile.username}</h3>
               <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">{profile.role}</p>
@@ -128,9 +128,8 @@ export default function TeacherDashboard() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-all duration-200 border cursor-pointer ${
-                      isActive ? 'bg-blue-50 text-blue-600 border-blue-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm hover:shadow-md'
-                    }`}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-all duration-200 border cursor-pointer ${isActive ? 'bg-blue-50 text-blue-600 border-blue-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm hover:shadow-md'
+                      }`}
                   >
                     <div className="flex items-center gap-3"><Icon className="w-4.5 h-4.5 shrink-0" />{tab.label}</div>
                     {tab.badge !== undefined && tab.badge > 0 && (
@@ -157,37 +156,40 @@ export default function TeacherDashboard() {
         {/* ── RIGHT CONTENT ZONE ── */}
         <section className="lg:col-span-3">
           {activeTab === 'profile' && (
-            <ProfileTab 
-              profile={profile} onSave={setProfile} showToast={showToast} 
-              pendingCount={accountRequests.length + vmRequests.length} 
+            <ProfileTab
+              profile={profile} onSave={setProfile} showToast={showToast}
+              pendingCount={accountRequests.length + vmRequests.length}
             />
           )}
 
           {activeTab === 'inscriptions' && (
-            <InscriptionsTab 
-              requests={accountRequests} 
-              onApprove={(id, name) => { setAccountRequests(p => p.filter(r => r.id !== id)); showToast(`Compte de ${name} validé !`); }} 
-              onReject={(id, name) => { setAccountRequests(p => p.filter(r => r.id !== id)); showToast(`Compte de ${name} rejeté.`, 'danger'); }} 
+            <InscriptionsTab
+              requests={accountRequests}
+              onApprove={(id, name) => { setAccountRequests(p => p.filter(r => r.id !== id)); showToast(`Compte de ${name} validé !`); }}
+              onReject={(id, name) => { setAccountRequests(p => p.filter(r => r.id !== id)); showToast(`Compte de ${name} rejeté.`, 'danger'); }}
             />
           )}
 
           {activeTab === 'vms' && (
-            <VmsTab 
-              requests={vmRequests} 
-              onApprove={(id, sName, pName) => { setVmRequests(p => p.filter(r => r.id !== id)); showToast(`Création VM validée pour "${pName}" !`); }} 
-              onReject={(id, sName) => { setVmRequests(p => p.filter(r => r.id !== id)); showToast(`Demande de VM de ${sName} rejetée.`, 'danger'); }} 
+            <VmsTab
+              requests={vmRequests}
+              onApprove={(id, sName, pName) => { setVmRequests(p => p.filter(r => r.id !== id)); showToast(`Création VM validée pour "${pName}" !`); }}
+              onReject={(id, sName) => { setVmRequests(p => p.filter(r => r.id !== id)); showToast(`Demande de VM de ${sName} rejetée.`, 'danger'); }}
             />
           )}
 
           {activeTab === 'instantiation' && (
-            <InstantiationTab 
-              showToast={showToast} teacherName={teacherFullName} 
-              onVmCreated={(pub) => setPublications(p => [pub, ...p])} 
+            <InstantiationTab
+              showToast={showToast}
+              teacherName={teacherFullName}
+              deployedVms={deployedVms}
+              onVmCreated={(vm) => setDeployedVms((prev) => [vm, ...prev])}
+              onDeleteVm={(id) => setDeployedVms((prev) => prev.filter((v) => v.id !== id))}
             />
           )}
 
           {activeTab === 'publications' && (
-            <PublicationsTab 
+            <PublicationsTab
               publications={publications} teacherName={teacherFullName}
             />
           )}
