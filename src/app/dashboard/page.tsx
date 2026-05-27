@@ -1,20 +1,21 @@
+// page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Server, 
-  FileText, 
-  BookOpen, 
-  User, 
-  LogOut, 
-  Menu, 
-  X, 
-  Bell, 
-  Activity, 
+import {
+  LayoutDashboard,
+  Server,
+  FileText,
+  BookOpen,
+  User,
+  LogOut,
+  Menu,
+  X,
+  Bell,
+  Activity,
   Network,
   Search,
   CheckCircle2,
@@ -203,18 +204,8 @@ export default function Dashboard() {
   const [requests, setRequests] = useState<RequestItem[]>(INITIAL_REQUESTS);
   const [publications, setPublications] = useState<Publication[]>(INITIAL_PUBLICATIONS);
 
-  // Authenticate simulation (Check if session mock is active, redirect to login if not)
-  useEffect(() => {
-    // Check if session storage exists or we are on client side
-    if (typeof window !== 'undefined') {
-      const isLoggedIn = sessionStorage.getItem('gandal_intro_seen') === 'true';
-      // For presentation/test robustness, if they haven't seen intro, we don't hard block them, but recommend login.
-    }
-  }, []);
-
   // VM Callbacks
   const handleCreateVM = (newVM: Omit<VM, 'id' | 'ip' | 'handover'>) => {
-    // Check name duplicate
     if (vms.some(v => v.name.toLowerCase() === newVM.name.toLowerCase())) {
       return 'Une machine virtuelle avec ce nom existe déjà.';
     }
@@ -229,9 +220,8 @@ export default function Dashboard() {
 
     setVms((prev) => [...prev, created]);
 
-    // Simulate agent auto-starting VM after 3 seconds
     setTimeout(() => {
-      setVms((prev) => 
+      setVms((prev) =>
         prev.map(v => v.id === created.id ? { ...v, status: 'Active' } : v)
       );
     }, 3000);
@@ -244,12 +234,11 @@ export default function Dashboard() {
   };
 
   const handleUpdateVMStatus = (id: string, newStatus: 'Active' | 'Arrêtée' | 'En cours') => {
-    setVms((prev) => 
+    setVms((prev) =>
       prev.map(v => v.id === id ? { ...v, status: newStatus } : v)
     );
   };
 
-  // Request Callbacks
   const handleSubmitRequest = (newReq: Omit<RequestItem, 'id' | 'status' | 'date'>) => {
     const created: RequestItem = {
       ...newReq,
@@ -260,7 +249,6 @@ export default function Dashboard() {
     setRequests((prev) => [created, ...prev]);
   };
 
-  // Publication Callbacks
   const handleSubmitPublication = (newPub: Omit<Publication, 'id' | 'date' | 'views' | 'likes'>) => {
     const created: Publication = {
       ...newPub,
@@ -271,25 +259,22 @@ export default function Dashboard() {
     };
     setPublications((prev) => [created, ...prev]);
 
-    // Update VM handover tag to match checklist progress
     const isComplete = Object.values(newPub.checklist).filter(Boolean).length === 4;
     const associatedVm = vms.find(v => v.name === newPub.vmName);
     if (associatedVm) {
-      setVms((prev) => 
-        prev.map(v => v.id === associatedVm.id 
-          ? { ...v, handover: (isComplete ? 'Prêt' : 'En cours') as 'Prêt' | 'En cours' | 'Non initié' } 
+      setVms((prev) =>
+        prev.map(v => v.id === associatedVm.id
+          ? { ...v, handover: (isComplete ? 'Prêt' : 'En cours') as 'Prêt' | 'En cours' | 'Non initié' }
           : v
         )
       );
     }
   };
 
-  // Profile Callbacks
   const handleUpdateProfile = (updatedInfo: typeof INITIAL_STUDENT) => {
     setStudentInfo(updatedInfo);
   };
 
-  // Logout Handler
   const handleLogout = () => {
     if (confirm('Voulez-vous vous déconnecter de la plateforme ?')) {
       sessionStorage.removeItem('gandal_intro_seen');
@@ -297,7 +282,6 @@ export default function Dashboard() {
     }
   };
 
-  // Sidebar Items
   const sidebarItems = [
     { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutDashboard },
     { id: 'vms', label: 'Mes VMs', icon: Server },
@@ -307,53 +291,36 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden font-sans">
-      
-      {/* ── BACKGROUND ORNAMENTAL BLOBS ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-blue-500/5 dark:bg-blue-500/2 border border-blue-500/10 dark:border-blue-500/1 blur-xl" />
-        <div className="absolute bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-indigo-500/5 dark:bg-indigo-500/2 border border-indigo-500/10 dark:border-indigo-500/1 blur-xl" />
-      </div>
+    <div className="relative min-h-screen bg-gray-50 text-gray-900 flex overflow-hidden font-sans">
 
-      {/* ── RESPONSIVE SIDEBAR ── */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/80 p-6 flex flex-col justify-between transition-transform duration-300 xl:translate-x-0 xl:static xl:shrink-0 ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 p-6 flex flex-col justify-between transition-transform duration-300 xl:translate-x-0 xl:static xl:shrink-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="space-y-8">
-          {/* Logo & Header */}
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white p-0.5 shadow-sm">
-                <Image
-                  src="/logo-removebg-preview (1).png"
-                  alt="Gandal Logo"
-                  fill
-                  className="object-contain p-0.5"
-                  priority
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-base font-black tracking-wider leading-none text-slate-900 dark:text-white uppercase">
-                  GANDAL
-                </span>
-                <span className="text-[7px] font-bold tracking-widest text-slate-400 mt-1 uppercase">
-                  Data Center ENSPY
-                </span>
-              </div>
-            </Link>
-            
-            {/* Close sidebar on mobile */}
-            <button 
-              onClick={() => setIsSidebarOpen(false)}
-              className="xl:hidden p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-white p-0.5 shadow-sm">
+              <Image
+                src="/logo-removebg-preview (1).png"
+                alt="Gandal Logo"
+                fill
+                className="object-contain p-0.5"
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base font-black tracking-wider leading-none text-gray-900 uppercase">
+                GANDAL
+              </span>
+              <span className="text-[7px] font-bold tracking-widest text-gray-400 mt-1 uppercase">
+                Data Center ENSPY
+              </span>
+            </div>
+          </Link>
 
-          {/* Navigation Links */}
+          {/* Navigation */}
           <nav className="space-y-1.5">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
@@ -365,11 +332,10 @@ export default function Dashboard() {
                     setActiveTab(item.id);
                     setIsSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3.5 px-4.5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-blue-650 text-white shadow-md shadow-blue-500/10'
-                      : 'text-slate-500 hover:text-slate-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850'
-                  }`}
+                  className={`w-full flex items-center gap-3.5 px-4.5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${isActive
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                 >
                   <Icon className="w-4.5 h-4.5 shrink-0" />
                   <span>{item.label}</span>
@@ -379,17 +345,17 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        {/* User Block & Logout */}
-        <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-150 dark:border-slate-850">
-            <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-sm">
-              👨‍💻
+        {/* User Profile in Sidebar */}
+        <div className="space-y-4 pt-6 border-t border-gray-100">
+          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+              {studentInfo.username.charAt(0)}
             </div>
             <div className="truncate">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate">
+              <span className="text-sm font-bold text-gray-800 block truncate">
                 {studentInfo.username}
               </span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase block tracking-wider">
+              <span className="text-[10px] font-bold text-gray-400 uppercase block tracking-wider">
                 Mat: {studentInfo.matricule}
               </span>
             </div>
@@ -397,7 +363,7 @@ export default function Dashboard() {
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4.5 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer"
+            className="w-full flex items-center gap-3 px-4.5 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Déconnexion</span>
@@ -405,61 +371,55 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT SHELL ── */}
-      <div className="flex-1 flex flex-col min-w-0 z-10">
-        
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+
         {/* Topbar */}
-        <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-850 px-6 py-4.5 flex items-center justify-between z-30">
+        <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between z-30">
           <div className="flex items-center gap-3">
-            {/* Hamburger for mobile */}
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="xl:hidden p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-350 cursor-pointer"
+              className="xl:hidden p-1.5 rounded-xl border border-gray-200 bg-white text-gray-600"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Title / Info badges */}
             <div className="hidden sm:flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-500">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 rounded-full border border-gray-200 text-[10px] font-bold text-gray-500">
                 <Network className="w-3.5 h-3.5 text-blue-600" />
                 <span>Nœuds Cluster : 3/3 Actifs</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-500">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 rounded-full border border-gray-200 text-[10px] font-bold text-gray-500">
                 <Activity className="w-3.5 h-3.5 text-emerald-600" />
                 <span>SMA : Supervision Active</span>
               </div>
             </div>
           </div>
 
-          {/* Quick options panel */}
           <div className="flex items-center gap-4 relative">
-            
-            {/* Search placeholder */}
             <div className="hidden md:relative md:block w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
                 disabled
                 placeholder="Rechercher..."
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-950 text-slate-850 border border-slate-200 dark:border-slate-850 rounded-xl text-[11px] outline-none cursor-not-allowed opacity-75"
+                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-[11px] outline-none cursor-not-allowed opacity-75"
               />
             </div>
 
-            {/* Notifications Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-350 transition-colors cursor-pointer"
+                className="relative p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-gray-600 transition-colors"
               >
                 <Bell className="w-4 h-4" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full" />
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3.5 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-3xl overflow-hidden z-50 animate-fade-in p-4 space-y-3.5">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                <div className="absolute right-0 mt-3.5 w-80 bg-white border border-gray-200 shadow-xl rounded-3xl overflow-hidden z-50 p-4 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">
                       Notifications du Système
                     </span>
                     <span className="text-[9px] font-bold text-blue-600 cursor-pointer hover:underline uppercase tracking-wider">
@@ -468,11 +428,11 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-3.5">
                     {NOTIFICATIONS.map((notif) => (
-                      <div key={notif.id} className="text-xs border-b border-slate-50 dark:border-slate-950 pb-2.5 last:border-b-0 last:pb-0">
-                        <p className="font-semibold text-slate-700 dark:text-slate-350 leading-relaxed">
+                      <div key={notif.id} className="text-xs border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
+                        <p className="font-semibold text-gray-700 leading-relaxed">
                           {notif.text}
                         </p>
-                        <span className="text-[10px] text-slate-400 font-bold block mt-1 uppercase tracking-widest">
+                        <span className="text-[10px] text-gray-400 font-bold block mt-1 uppercase tracking-widest">
                           {notif.time}
                         </span>
                       </div>
@@ -482,36 +442,35 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Quick Profile shortcut */}
-            <button 
+            <button
               onClick={() => setActiveTab('profile')}
-              className="flex items-center gap-2 p-1 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-2xl cursor-pointer"
+              className="flex items-center gap-2 p-1 border border-gray-200 bg-white rounded-2xl"
             >
-              <div className="w-7 h-7 rounded-xl bg-blue-150 dark:bg-blue-900/40 flex items-center justify-center text-xs">
-                👨‍💻
+              <div className="w-7 h-7 rounded-xl bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-600">
+                {studentInfo.username.charAt(0)}
               </div>
-              <span className="hidden md:inline text-xs font-black text-slate-800 dark:text-slate-200 pr-2">
+              <span className="hidden md:inline text-xs font-black text-gray-800 pr-2">
                 {studentInfo.username.split(' ')[0]}
               </span>
             </button>
           </div>
         </header>
 
-        {/* Central Workspace container */}
+        {/* Main Workspace */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 max-w-7xl w-full mx-auto pb-16">
           {activeTab === 'overview' && (
-            <OverviewTab 
-              studentInfo={studentInfo} 
-              vms={vms} 
-              requests={requests} 
+            <OverviewTab
+              studentInfo={studentInfo}
+              vms={vms}
+              requests={requests}
               publications={publications}
               onTabChange={setActiveTab}
             />
           )}
 
           {activeTab === 'vms' && (
-            <VMsTab 
-              vms={vms} 
+            <VMsTab
+              vms={vms}
               onCreateVM={handleCreateVM}
               onDeleteVM={handleDeleteVM}
               onUpdateVMStatus={handleUpdateVMStatus}
@@ -519,7 +478,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'requests' && (
-            <RequestsTab 
+            <RequestsTab
               requests={requests}
               vms={vms}
               onSubmitRequest={handleSubmitRequest}
@@ -527,7 +486,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'publications' && (
-            <PublicationsTab 
+            <PublicationsTab
               publications={publications}
               vms={vms}
               onSubmitPublication={handleSubmitPublication}
@@ -535,7 +494,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'profile' && (
-            <ProfileTab 
+            <ProfileTab
               studentInfo={studentInfo}
               vmsCount={vms.filter(v => v.status === 'Active').length}
               publicationsCount={publications.length}
@@ -544,7 +503,6 @@ export default function Dashboard() {
           )}
         </main>
       </div>
-
     </div>
   );
 }
