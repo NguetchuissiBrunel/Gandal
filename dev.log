@@ -1,0 +1,8 @@
+
+> gandal@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.2.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://10.14.41.46:3000
+✓ Ready in 589ms
