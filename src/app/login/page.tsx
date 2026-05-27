@@ -188,7 +188,7 @@ export default function LoginPage() {
               </div>
               <div className="pt-4">
                 <Link
-                  href="/"
+                  href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
                 >
                   Accéder à la plateforme
