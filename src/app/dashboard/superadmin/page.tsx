@@ -32,9 +32,11 @@ export default function SuperAdminDashboard() {
   };
 
   const navItems = [
+
+    { id: 'profile' as const, label: 'Mon Profil', icon: User },
     { id: 'vms' as const, label: 'Machines Virtuelles', icon: Server },
     { id: 'requests' as const, label: 'Requêtes', icon: FileText, badge: pendingCount },
-    { id: 'profile' as const, label: 'Mon Profil', icon: User },
+
   ];
 
   return (
@@ -100,8 +102,8 @@ export default function SuperAdminDashboard() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-all duration-200 border cursor-pointer ${isActive
-                        ? 'bg-indigo-50 text-indigo-600 border-indigo-500 shadow-sm'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm hover:shadow-md'
+                      ? 'bg-indigo-50 text-indigo-600 border-indigo-500 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm hover:shadow-md'
                       }`}
                   >
                     <div className="flex items-center gap-3">
@@ -141,9 +143,11 @@ export default function SuperAdminDashboard() {
 
         {/* ── WORKSPACE ── */}
         <section className="lg:col-span-3">
+
+          {activeTab === 'profile' && <AdminProfile />}
           {activeTab === 'vms' && <VMMonitoring />}
           {activeTab === 'requests' && <RequestsPanel />}
-          {activeTab === 'profile' && <AdminProfile />}
+
         </section>
       </main>
 
