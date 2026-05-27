@@ -1,57 +1,40 @@
 // ── Types partagés du Dashboard Enseignant (GANDAL) ──
 
 export interface TeacherProfile {
-  firstName: string;
-  lastName: string;
-  title: string;
-  role: string;
-  department: string;
+  username: string;
   email: string;
-  bureau: string;
-  cluster: string;
-  specialty: string;
+  password?: string;
+  role: string;
 }
 
 export interface AccountRequest {
-  id: string;
-  name: string;
-  matricule: string;
-  level: string;
-  department: string;
+  id: string; // for internal tracking
+  nom: string;
   email: string;
-  date: string;
-  reason: string;
+  matricule: string;
+  organisation: string;
+  justification: string;
+  statut: 'pending' | 'validated' | 'rejected';
 }
 
 export interface VmRequest {
-  id: string;
-  studentName: string;
-  matricule: string;
-  projectName: string;
-  vcpu: number;
-  ram: number;
-  storage: number;
-  os: string;
-  networkVlan: string;
-  purpose: string;
-  date: string;
+  id: string; // for internal tracking
+  objet: string;
+  contenu: string;
+  size_RAM: number; // en Go
+  size_ROM: number; // en Go
+  OS: string;
+  Demandeur: string; // Nom ou matricule
+  statut: 'pending' | 'validated' | 'rejected';
 }
 
 export interface Publication {
-  id: string;
-  title: string;
-  category: string;
-  authors: string;
-  desc: string;
-  git: string;
-  status: string;
-  ip: string;
-  vms: string;
-  specs: string;
-  tags: string[];
-  grade: string;
-  approvedBy: string;
-  date: string;
+  id: string; // for internal tracking
+  nom: string;
+  lien: string;
+  description: string;
+  photo: string; // url ou base64
+  status: 'draft' | 'published' | 'archived';
 }
 
 export type ToastType = 'success' | 'danger' | 'info';

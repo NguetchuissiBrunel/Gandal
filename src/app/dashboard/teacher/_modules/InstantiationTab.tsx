@@ -12,13 +12,13 @@ interface InstantiationTabProps {
 }
 
 export default function InstantiationTab({ showToast, onVmCreated, teacherName }: InstantiationTabProps) {
-  // Formulaire
-  const [vmName, setVmName] = useState('');
-  const [cpu, setCpu] = useState('2');
-  const [ram, setRam] = useState('4');
-  const [storage, setStorage] = useState('80');
-  const [os, setOs] = useState('Ubuntu Server 24.04 LTS');
-  const [vlan, setVlan] = useState('VLAN 101 (Isolated)');
+  // Formulaire - champs conformes au diagramme de classe VM
+  const [size_RAM, setSize_RAM] = useState('4');
+  const [size_ROM, setSize_ROM] = useState('80');
+  const [N_CPU, setN_CPU] = useState('2');
+  const [ISO_image, setISO_image] = useState('Ubuntu Server 24.04 LTS');
+  const [mode, setMode] = useState('Isolé');
+  const [SSH_Public_Key, setSSH_Public_Key] = useState('');
 
   // Simulateur de déploiement SMA
   const [isDeploying, setIsDeploying] = useState(false);
@@ -27,7 +27,6 @@ export default function InstantiationTab({ showToast, onVmCreated, teacherName }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vmName.trim()) { showToast('Veuillez spécifier un nom de machine virtuelle.', 'danger'); return; }
     setIsDeploying(true);
     setStep(1);
     setLogs([]);
@@ -37,18 +36,18 @@ export default function InstantiationTab({ showToast, onVmCreated, teacherName }
     if (!isDeploying) return;
 
     const sequence = [
-      `[AM] ✉ Message FIPA-ACL reçu. Requête: CREATE_VM. ResourceSpec: vCPUs=${cpu}, RAM=${ram}Go, Storage=${storage}Go, OS="${os}".`,
+      `[AM] ✉ Message FIPA-ACL reçu. Requête: CREATE_VM. ResourceSpec: N_CPU=${N_CPU}, size_RAM=${size_RAM}Go, size_ROM=${size_ROM}Go, ISO_image="${ISO_image}", mode=${mode}.`,
       `[AM] Analyse de la charge du cluster. Transmission à l'Agent de Supervision (AS)...`,
       `[AS] Nœud "enspy-node-02" détecté (CPU: 22%, RAM dispos: 64Go). Réponse FIPA-ACL → AM: AGREE.`,
       `[AM] Ordre transmis à l'Agent de Déploiement (AD): REQUEST "instantiate_vm" sur "enspy-node-02".`,
       `[AD] 🖥️ Connexion à l'API Proxmox VE sur le Nœud 02...`,
-      `[AD] Allocation confirmée. VM ID: 104. Création du disque virtuel ${storage}Go...`,
-      `[AD] Clonage du template OS "${os}"... [||||||||||..........] 50%`,
+      `[AD] Allocation confirmée. VM ID: 104. Création du disque virtuel ${size_ROM}Go...`,
+      `[AD] Clonage du template ISO "${ISO_image}"... [||||||||||..........] 50%`,
       `[AD] Clonage terminé. Provisionnement de l'adresse IP dans la plage GANDAL...`,
-      `[AD] Configuration réseau appliquée: "${vlan}". Isolation réseau activée.`,
-      `[AD] Démarrage VM ID 104... Status: RUNNING. IP locale: 20.20.20.19.`,
+      `[AD] Mode réseau appliqué: "${mode}". SSH_Public_Key enregistrée.`,
+      `[AD] Démarrage VM ID 104... status: RUNNING. ipAddress: 20.20.20.19.`,
       `[AS] VM ID 104 opérationnelle. Monitoring branché sur Prometheus.`,
-      `[AM] Déploiement terminé de "${vmName}". Rapport envoyé. Code FIPA: INFORM.`,
+      `[AM] Déploiement terminé. Rapport envoyé à l'enseignant ${teacherName}. Code FIPA: INFORM.`,
     ];
 
     if (step > 0 && step <= sequence.length) {
@@ -61,24 +60,15 @@ export default function InstantiationTab({ showToast, onVmCreated, teacherName }
 
     if (step > sequence.length) {
       setIsDeploying(false);
-      showToast(`VM "${vmName}" déployée (IP: 20.20.20.19) !`, 'success');
+      showToast(`VM déployée (IP: 20.20.20.19, ISO: ${ISO_image}) !`, 'success');
       onVmCreated({
         id: `pub-${Date.now()}`,
-        title: `VM Directe — ${vmName}`,
-        category: 'Infrastructure',
-        authors: `${teacherName} (Direct)`,
-        desc: `VM instanciée par la console de supervision. OS : ${os}.`,
-        git: 'https://github.com/enspy-gi27',
-        status: 'En ligne',
-        ip: '20.20.20.19',
-        vms: vmName,
-        specs: `${cpu} vCPUs / ${ram} Go RAM / ${storage} Go HDD`,
-        tags: [os.split(' ')[0], 'Direct Instantiation'],
-        grade: '',
-        approvedBy: teacherName,
-        date: "Aujourd'hui",
+        nom: `VM Directe — ${ISO_image} (${N_CPU} CPU / ${size_RAM}Go RAM)`,
+        lien: 'https://github.com/enspy-gi27',
+        description: `VM instanciée par ${teacherName}. ISO: ${ISO_image}, size_RAM: ${size_RAM}Go, size_ROM: ${size_ROM}Go, N_CPU: ${N_CPU}, mode: ${mode}.`,
+        photo: '',
+        status: 'published',
       });
-      setVmName('');
     }
   }, [isDeploying, step]);
 
@@ -87,9 +77,9 @@ export default function InstantiationTab({ showToast, onVmCreated, teacherName }
   return (
     <div className="relative bg-white border border-slate-200 rounded-2xl p-8 pb-14 space-y-8 shadow-sm hover:shadow-md transition-shadow duration-300">
       <Screw3D className="top-2 left-2 -rotate-12" />
-      <Screw3D className="top-2 right-2 rotate-[70deg]" />
-      <Screw3D className="bottom-2 left-2 -rotate-[60deg]" />
-      <Screw3D className="bottom-2 right-2 rotate-[120deg]" />
+      <Screw3D className="top-2 right-2 rotate-[60deg]" />
+      <Screw3D className="bottom-[-1.5rem] left-2 -rotate-45" />
+      <Screw3D className="bottom-[-1.5rem] right-2 -rotate-[45deg]" />
 
       <div className="border-b border-slate-100 pb-6">
         <h2 className="text-2xl font-black text-black tracking-tight uppercase leading-none">Console d'Instanciation Directe</h2>
@@ -100,54 +90,54 @@ export default function InstantiationTab({ showToast, onVmCreated, teacherName }
         /* ── FORMULAIRE ── */
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Nom VM */}
-            <Field label="Nom de la VM (DNS ID)">
-              <input
-                type="text" required placeholder="ex. library-prod-vm"
-                value={vmName} onChange={(e) => setVmName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-sm font-semibold font-mono"
-              />
-            </Field>
-
-            {/* OS */}
-            <Field label="Image Système OS">
-              <select value={os} onChange={(e) => setOs(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
+            {/* ISO_image */}
+            <Field label="ISO_image (Système OS)">
+              <select value={ISO_image} onChange={(e) => setISO_image(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
                 <option>Ubuntu Server 24.04 LTS</option>
                 <option>Debian 12 Bookworm</option>
                 <option>Alpine Linux 3.20 (Minimal)</option>
               </select>
             </Field>
 
-            {/* CPU */}
-            <Field label="Cœurs vCPUs">
-              <select value={cpu} onChange={(e) => setCpu(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
+            {/* N_CPU */}
+            <Field label="N_CPU (Cœurs vCPU)">
+              <select value={N_CPU} onChange={(e) => setN_CPU(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
                 {['1', '2', '4', '8'].map((c) => <option key={c} value={c}>{c} Cœur{Number(c) > 1 ? 's' : ''}</option>)}
               </select>
             </Field>
 
-            {/* RAM */}
-            <Field label="Mémoire vive RAM">
-              <select value={ram} onChange={(e) => setRam(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
+            {/* size_RAM */}
+            <Field label="size_RAM (Mémoire vive)">
+              <select value={size_RAM} onChange={(e) => setSize_RAM(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
                 {['1', '2', '4', '8', '16', '32'].map((r) => <option key={r} value={r}>{r} Go</option>)}
               </select>
             </Field>
 
-            {/* Storage */}
-            <Field label="Espace Disque (HDD/SSD)">
+            {/* size_ROM */}
+            <Field label="size_ROM (Espace Disque)">
               <div className="relative flex items-center">
-                <input type="number" min="10" max="500" required value={storage} onChange={(e) => setStorage(e.target.value)}
+                <input type="number" min="10" max="500" required value={size_ROM} onChange={(e) => setSize_ROM(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 pr-12 focus:outline-none focus:border-blue-600 text-sm font-semibold font-mono" />
                 <span className="absolute right-4 text-xs font-bold text-slate-400">Go</span>
               </div>
             </Field>
 
-            {/* VLAN */}
-            <Field label="Réseau & Isolation">
-              <select value={vlan} onChange={(e) => setVlan(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
-                <option value="VLAN 101 (Isolated)">VLAN 101 (Étudiants Isolés)</option>
-                <option value="VLAN 102 (Public Access)">VLAN 102 (Accès public restreint)</option>
-                <option value="VLAN 103 (Administration)">VLAN 103 (Supervision Réseau)</option>
+            {/* mode */}
+            <Field label="mode (Réseau & Isolation)">
+              <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer">
+                <option value="Isolé">Isolé (Étudiants)</option>
+                <option value="Public restreint">Public restreint</option>
+                <option value="Administration">Administration</option>
               </select>
+            </Field>
+
+            {/* SSH_Public_Key */}
+            <Field label="SSH_Public_Key (optionnel)">
+              <input
+                type="text" placeholder="ssh-rsa AAAA..."
+                value={SSH_Public_Key} onChange={(e) => setSSH_Public_Key(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-sm font-semibold font-mono"
+              />
             </Field>
           </div>
 
@@ -182,11 +172,10 @@ export default function InstantiationTab({ showToast, onVmCreated, teacherName }
           </div>
 
           {/* Résumé specs */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold text-slate-700">
-            <p><span className="text-slate-400 block font-bold text-[9px] uppercase">Nom VM</span>{vmName || 'gandal-direct'}</p>
-            <p><span className="text-slate-400 block font-bold text-[9px] uppercase">Image OS</span>{os}</p>
-            <p><span className="text-slate-400 block font-bold text-[9px] uppercase">Specs</span>{cpu} Cœurs / {ram} Go RAM</p>
-            <p><span className="text-slate-400 block font-bold text-[9px] uppercase">Réseau</span>{vlan.split(' ')[0]}</p>
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700">
+            <p><span className="text-slate-400 block font-bold text-[9px] uppercase">ISO_image</span>{ISO_image}</p>
+            <p><span className="text-slate-400 block font-bold text-[9px] uppercase">N_CPU / size_RAM</span>{N_CPU} Cœurs / {size_RAM} Go</p>
+            <p><span className="text-slate-400 block font-bold text-[9px] uppercase">size_ROM / mode</span>{size_ROM} Go · {mode}</p>
           </div>
         </div>
       )}

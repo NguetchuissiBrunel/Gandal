@@ -16,8 +16,8 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<TeacherProfile>(profile);
 
-  const displayInitials = `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
-  const draftInitials   = `${draft.firstName.charAt(0)}${draft.lastName.charAt(0)}`.toUpperCase();
+  const displayInitials = profile.username ? profile.username.substring(0, 2).toUpperCase() : 'TE';
+  const draftInitials   = draft.username ? draft.username.substring(0, 2).toUpperCase() : 'TE';
 
   const handleEdit = () => {
     setDraft(profile);
@@ -57,7 +57,7 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Fiche Académique Enseignant</p>
             <h2 className="text-xl font-black text-black tracking-tight leading-none">
-              {isEditing ? `${draft.firstName} ${draft.lastName}` : `${profile.firstName} ${profile.lastName}`}
+              {isEditing ? draft.username : profile.username}
             </h2>
             <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">
               {isEditing ? draft.role : profile.role}
@@ -102,20 +102,9 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FieldBlock icon={<User className="w-3.5 h-3.5 text-slate-400" />} title="Identité & Grade">
               {[
-                { label: 'Prénom',           value: profile.firstName },
-                { label: 'Nom de famille',   value: profile.lastName  },
-                { label: 'Titre académique', value: profile.title     },
-                { label: 'Fonction',         value: profile.role      },
-                { label: 'Spécialité',       value: profile.specialty },
-              ]}
-            </FieldBlock>
-
-            <FieldBlock icon={<Mail className="w-3.5 h-3.5 text-slate-400" />} title="Contact & Administration">
-              {[
-                { label: 'Adresse email',   value: profile.email      },
-                { label: 'Département',     value: profile.department },
-                { label: 'Bureau',          value: profile.bureau     },
-                { label: 'Cluster associé', value: profile.cluster    },
+                { label: 'Nom d\'utilisateur', value: profile.username },
+                { label: 'Adresse email',      value: profile.email    },
+                { label: 'Fonction / Rôle',    value: profile.role     },
               ]}
             </FieldBlock>
           </div>
@@ -125,24 +114,12 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <EditBlock icon={<User className="w-3.5 h-3.5 text-slate-400" />} title="Identité & Grade">
                 {([
-                  { label: 'Prénom',           key: 'firstName' as const, type: 'text'  },
-                  { label: 'Nom de famille',   key: 'lastName'  as const, type: 'text'  },
-                  { label: 'Titre académique', key: 'title'     as const, type: 'text'  },
-                  { label: 'Fonction',         key: 'role'      as const, type: 'text'  },
-                  { label: 'Spécialité',       key: 'specialty' as const, type: 'text'  },
+                  { label: 'Nom d\'utilisateur', key: 'username' as const, type: 'text'  },
+                  { label: 'Adresse email',      key: 'email'    as const, type: 'email' },
+                  { label: 'Mot de passe',       key: 'password' as const, type: 'password' },
+                  { label: 'Fonction / Rôle',    key: 'role'     as const, type: 'text'  },
                 ] as const).map(({ label, key, type }) => (
-                  <EditField key={key} label={label} type={type} value={draft[key]} onChange={set(key)} />
-                ))}
-              </EditBlock>
-
-              <EditBlock icon={<Mail className="w-3.5 h-3.5 text-slate-400" />} title="Contact & Administration">
-                {([
-                  { label: 'Adresse email',   key: 'email'      as const, type: 'email' },
-                  { label: 'Département',     key: 'department' as const, type: 'text'  },
-                  { label: 'Bureau',          key: 'bureau'     as const, type: 'text'  },
-                  { label: 'Cluster associé', key: 'cluster'    as const, type: 'text'  },
-                ] as const).map(({ label, key, type }) => (
-                  <EditField key={key} label={label} type={type} value={draft[key]} onChange={set(key)} />
+                  <EditField key={key} label={label} type={type} value={draft[key] || ''} onChange={set(key)} />
                 ))}
               </EditBlock>
             </div>

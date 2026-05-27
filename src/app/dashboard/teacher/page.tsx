@@ -15,20 +15,19 @@ import PublicationsTab from './_modules/PublicationsTab';
 
 // === DONNÉES SIMULÉES INITIALES ===
 const INITIAL_ACCOUNT_REQUESTS: AccountRequest[] = [
-  { id: 'req-acc-1', name: 'Jean Eboa', matricule: '22P250', level: 'Niveau 4', department: 'Génie Informatique', email: 'jean.eboa@enspy-uy1.cm', date: '25/05/2026', reason: "Hébergement d'un projet de fin d'année en Systèmes Distribués (SMA)." },
-  { id: 'req-acc-2', name: 'Marie Ngo Ndjock', matricule: '23P190', level: 'Niveau 3', department: 'Génie Télécommunications', email: 'marie.ngo@enspy-uy1.cm', date: '26/05/2026', reason: 'Accès aux ressources de calcul du cluster pour les travaux pratiques de Routage Dynamique.' },
-  { id: 'req-acc-3', name: 'Arthur Kamga', matricule: '21P088', level: 'Niveau 5', department: 'Génie Informatique', email: 'arthur.kamga@enspy-uy1.cm', date: '24/05/2026', reason: "Déploiement expérimental d'un modèle d'apprentissage profond sur flux vidéo urbains." }
+  { id: 'req-acc-1', nom: 'Jean Eboa', matricule: '22P250', organisation: 'ENSPY', email: 'jean.eboa@enspy-uy1.cm', justification: "Hébergement d'un projet de fin d'année en Systèmes Distribués (SMA).", statut: 'pending' },
+  { id: 'req-acc-2', nom: 'Marie Ngo Ndjock', matricule: '23P190', organisation: 'ENSPY', email: 'marie.ngo@enspy-uy1.cm', justification: 'Accès aux ressources de calcul du cluster pour les travaux pratiques de Routage Dynamique.', statut: 'pending' },
+  { id: 'req-acc-3', nom: 'Arthur Kamga', matricule: '21P088', organisation: 'ENSPY', email: 'arthur.kamga@enspy-uy1.cm', justification: "Déploiement expérimental d'un modèle d'apprentissage profond sur flux vidéo urbains.", statut: 'pending' }
 ];
 
 const INITIAL_VM_REQUESTS: VmRequest[] = [
-  { id: 'req-vm-1', studentName: 'Jean Eboa', matricule: '22P250', projectName: 'Simulation Trafic Urbain SMA', vcpu: 4, ram: 8, storage: 100, os: 'Ubuntu Server 24.04 LTS', networkVlan: 'VLAN 102 (Isolated)', purpose: 'Exécuter 6 agents logiciels autonomes conformes FIPA en environnement Java JADE avec monitoring Prometheus.', date: '25/05/2026' },
-  { id: 'req-vm-2', studentName: 'Arthur Kamga', matricule: '21P088', projectName: 'API Contrôle Intelligent de Trafic', vcpu: 8, ram: 16, storage: 200, os: 'Debian 12 Bookworm', networkVlan: 'VLAN 105 (Public Bridged)', purpose: "Hébergement d'un serveur d'inférence Flask/PyTorch exposé pour l'application mobile de supervision.", date: '26/05/2026' }
+  { id: 'req-vm-1', objet: 'Simulation Trafic Urbain SMA', contenu: 'Exécuter 6 agents logiciels autonomes conformes FIPA en environnement Java JADE avec monitoring Prometheus.', size_RAM: 8, size_ROM: 100, OS: 'Ubuntu Server 24.04 LTS', Demandeur: '22P250', statut: 'pending' },
+  { id: 'req-vm-2', objet: 'API Contrôle Intelligent de Trafic', contenu: "Hébergement d'un serveur d'inférence Flask/PyTorch exposé pour l'application mobile de supervision.", size_RAM: 16, size_ROM: 200, OS: 'Debian 12 Bookworm', Demandeur: '21P088', statut: 'pending' }
 ];
 
 const INITIAL_PUBLICATIONS: Publication[] = [
-  { id: 'pub-1', title: 'Portail de Supervision Multi-Agent', category: 'Système Multi-Agent', authors: 'Promotion GI27', desc: 'Supervise et orchestre en temps réel les ressources physiques et virtuelles de GANDAL grâce à une architecture de 6 agents logiciels autonomes conformes aux normes FIPA.', git: 'https://github.com/enspy-gi27/gandal-sma', status: 'En ligne', ip: '20.20.20.10', vms: 'gandal-sma-master', specs: '4 vCPUs / 8 Go RAM / 100 Go HDD', tags: ['Next.js', 'JADE', 'FIPA-ACL', 'Proxmox API'], grade: '18/20', approvedBy: 'Pr. Batchakui Bernabé', date: '15/05/2026' },
-  { id: 'pub-2', title: 'Gestionnaire de Bibliothèque ENSPY', category: 'Application Web', authors: 'Eboa Jean, Ndjock Marie', desc: "Plateforme web centralisée facilitant la gestion, la recherche et l'emprunt d'ouvrages académiques et de mémoires de recherche pour les étudiants et enseignants de l'école.", git: 'https://github.com/enspy-gi27/enspy-library', status: 'En ligne', ip: '20.20.20.12', vms: 'library-prod-vm', specs: '2 vCPUs / 4 Go RAM / 50 Go HDD', tags: ['React', 'NestJS', 'PostgreSQL', 'Nginx'], grade: '16/20', approvedBy: 'Ing. Tedongmouo Abel', date: '20/05/2026' },
-  { id: 'pub-3', title: 'Contrôle Intelligent de Trafic', category: 'IoT & Intelligence Artificielle', authors: 'Kamga Arthur', desc: "Système prédictif de régulation des feux de signalisation de Yaoundé basé sur l'analyse de flux vidéo par apprentissage profond, hébergé localement sur nos clusters.", git: 'https://github.com/enspy-gi27/intelligent-traffic', status: 'Hors ligne', ip: '20.20.20.15', vms: 'traffic-inference-node', specs: '8 vCPUs / 16 Go RAM / 200 Go SSD', tags: ['Python', 'PyTorch', 'Docker', 'FastAPI'], grade: '', approvedBy: '', date: '22/05/2026' }
+  { id: 'pub-1', nom: 'Portail de Supervision Multi-Agent', lien: 'https://github.com/enspy-gi27/gandal-sma', description: 'Supervise et orchestre en temps réel les ressources physiques et virtuelles de GANDAL grâce à une architecture de 6 agents logiciels autonomes conformes aux normes FIPA.', photo: '/default-photo.png', status: 'published' },
+  { id: 'pub-2', nom: 'Gestionnaire de Bibliothèque ENSPY', lien: 'https://github.com/enspy-gi27/enspy-library', description: "Plateforme web centralisée facilitant la gestion, la recherche et l'emprunt d'ouvrages académiques et de mémoires de recherche pour les étudiants et enseignants de l'école.", photo: '/default-photo.png', status: 'published' }
 ];
 
 export default function TeacherDashboard() {
@@ -36,9 +35,10 @@ export default function TeacherDashboard() {
 
   // État partagé
   const [profile, setProfile] = useState<TeacherProfile>({
-    firstName: 'Bernabé', lastName: 'Batchakui', title: 'Professeur des Universités', role: 'Directeur de Projet',
-    department: 'Génie Informatique', email: 'bernabe.batchakui@enspy-uy1.cm', bureau: 'Bâtiment des Enseignants, Bureau E-102',
-    cluster: 'Cluster Local GANDAL (ENSPY Yaoundé)', specialty: 'Systèmes Multi-Agents & IA Distribuée',
+    username: 'bbatchakui',
+    email: 'bernabe.batchakui@enspy-uy1.cm',
+    password: '',
+    role: 'Directeur de Projet'
   });
   
   const [accountRequests, setAccountRequests] = useState(INITIAL_ACCOUNT_REQUESTS);
@@ -52,7 +52,7 @@ export default function TeacherDashboard() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const teacherFullName = `Pr. ${profile.lastName} ${profile.firstName}`;
+  const teacherFullName = profile.username;
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-slate-900 font-sans pb-24 overflow-x-hidden">
@@ -107,12 +107,10 @@ export default function TeacherDashboard() {
             {/* Profile Summary */}
             <div className="text-center pt-4 pb-6 border-b border-slate-100 flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-black bg-blue-50 flex items-center justify-center mb-4 select-none">
-                <span className="text-2xl font-black text-blue-600">{`${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase()}</span>
+                <span className="text-2xl font-black text-blue-600">{profile.username ? profile.username.substring(0,2).toUpperCase() : 'TE'}</span>
               </div>
-              <h3 className="font-black text-slate-900 text-base leading-tight">{profile.title}</h3>
-              <p className="text-sm font-black text-black mt-0.5">{profile.firstName} {profile.lastName}</p>
+              <h3 className="font-black text-slate-900 text-base leading-tight">{profile.username}</h3>
               <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">{profile.role}</p>
-              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">ENSPY · Dpt. {profile.department}</p>
             </div>
 
             {/* Tab Navigation */}
@@ -191,10 +189,6 @@ export default function TeacherDashboard() {
           {activeTab === 'publications' && (
             <PublicationsTab 
               publications={publications} teacherName={teacherFullName}
-              onSaveGrade={(pubId, grade) => {
-                setPublications(p => p.map(pub => pub.id === pubId ? { ...pub, grade: grade ? `${grade}/20` : '', approvedBy: teacherFullName } : pub));
-                showToast("Évaluation enregistrée.", "success");
-              }}
             />
           )}
         </section>
