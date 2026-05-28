@@ -52,12 +52,12 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
             }}
             className="flex items-center gap-3 group cursor-pointer"
           >
-            <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-200 transition-transform duration-300 group-hover:scale-105 bg-white">
+            <div className="relative w-14 h-14 transition-transform duration-300 group-hover:scale-105">
               <Image
                 src="/logo.png"
                 alt="Gandal Logo"
                 fill
-                className="object-contain p-0.5"
+                className="object-contain"
                 priority
               />
             </div>

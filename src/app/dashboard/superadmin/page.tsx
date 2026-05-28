@@ -52,8 +52,8 @@ export default function SuperAdminDashboard() {
       {/* ── HEADER ── */}
       <header className="relative w-full bg-white border-b border-slate-200 py-6 px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-4" style={{ zIndex: 10 }}>
         <div className="flex items-center gap-4">
-          <Link href="/" className="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-200 bg-white p-0.5 shrink-0 hover:scale-105 transition-transform duration-200">
-            <Image src="/logo.png" alt="Gandal Logo" fill className="object-contain p-0.5" />
+          <Link href="/" className="relative w-16 h-16 shrink-0 hover:scale-105 transition-transform duration-200 block">
+            <Image src="/logo.png" alt="Gandal Logo" fill className="object-contain" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
