@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "../styles/chatbot.css";
 
 export const metadata: Metadata = {
   title: "GANDAL — Plateforme Data Center ENSPY",

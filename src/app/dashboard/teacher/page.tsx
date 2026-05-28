@@ -12,6 +12,7 @@ import InscriptionsTab from './_modules/InscriptionsTab';
 import VmsTab from './_modules/VmsTab';
 import InstantiationTab from './_modules/InstantiationTab';
 import PublicationsTab from './_modules/PublicationsTab';
+import FloatingChatbot from '@/components/FloatingChatbot';
 
 const INITIAL_ACCOUNT_REQUESTS: AccountRequest[] = [
   { id: 'req-acc-1', nom: 'Jean Eboa', matricule: '22P250', organisation: 'ENSPY', email: 'jean.eboa@enspy-uy1.cm', justification: "Hébergement d'un projet de fin d'année en Systèmes Distribués (SMA).", statut: 'pending' },
@@ -226,6 +227,9 @@ export default function TeacherDashboard() {
           )}
         </section>
       </main>
+
+      {/* ── CHATBOT FLOTTANT ── */}
+      <FloatingChatbot />
     </div>
   );
 }
