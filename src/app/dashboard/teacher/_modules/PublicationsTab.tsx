@@ -155,7 +155,7 @@ export default function PublicationsTab({
 
       {/* Modal Détails */}
       {selectedPub && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="relative bg-white border border-slate-200 rounded-2xl w-full max-w-md p-8 overflow-hidden shadow-xl">
             <button onClick={() => setSelectedPub(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 transition-colors cursor-pointer">
               <X className="w-5 h-5" />
@@ -202,7 +202,7 @@ export default function PublicationsTab({
 
       {/* Modal Création de Publication */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="relative bg-white border border-slate-200 rounded-2xl w-full max-w-lg p-8 overflow-hidden shadow-xl max-h-[90vh] flex flex-col">
             <button onClick={() => { setIsModalOpen(false); setError(''); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 transition-colors cursor-pointer">
               <X className="w-5 h-5" />
