@@ -333,8 +333,8 @@ export default function Dashboard() {
                     setIsSidebarOpen(false);
                   }}
                   className={`w-full flex items-center gap-3.5 px-4.5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${isActive
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                 >
                   <Icon className="w-4.5 h-4.5 shrink-0" />
@@ -345,11 +345,12 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        {/* User Profile in Sidebar */}
+        {/* User Profile Section with Avatar */}
         <div className="space-y-4 pt-6 border-t border-gray-100">
           <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
-              {studentInfo.username.charAt(0)}
+            {/* Avatar / Photo de profil */}
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm shadow-sm">
+              {studentInfo.username.charAt(0).toUpperCase()}
             </div>
             <div className="truncate">
               <span className="text-sm font-bold text-gray-800 block truncate">
