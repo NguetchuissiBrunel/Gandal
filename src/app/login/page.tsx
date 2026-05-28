@@ -76,12 +76,12 @@ export default function LoginPage() {
         {/* Logo & Branding (Cliquable) */}
         <Link href="/" className="flex flex-col items-center mb-6 group cursor-pointer">
           {/* Logo GANDAL */}
-          <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-slate-200 bg-white p-1 mb-3 shadow-md shadow-slate-100 transition-transform duration-300 group-hover:scale-105">
+          <div className="relative w-24 h-24 mb-2 transition-transform duration-300 group-hover:scale-105">
             <Image
               src="/logo.png"
               alt="Gandal Logo"
               fill
-              className="object-contain p-1"
+              className="object-contain"
               priority
             />
           </div>

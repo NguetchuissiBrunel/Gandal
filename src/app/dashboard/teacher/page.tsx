@@ -190,7 +190,15 @@ export default function TeacherDashboard() {
 
           {activeTab === 'publications' && (
             <PublicationsTab
-              publications={publications} teacherName={teacherFullName}
+              publications={publications}
+              teacherName={teacherFullName}
+              onCreatePublication={(newPub) => {
+                setPublications((prev) => [
+                  { id: `pub-${prev.length + 1}`, ...newPub },
+                  ...prev
+                ]);
+                showToast('Nouvelle publication enregistrée avec succès !');
+              }}
             />
           )}
         </section>

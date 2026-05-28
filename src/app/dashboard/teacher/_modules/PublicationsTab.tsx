@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, ExternalLink, X } from 'lucide-react';
+import { BookOpen, ExternalLink, X, Plus, Image, Link, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import Screw3D from '@/components/Screw3D';
-import type { Publication, ShowToastFn } from './types';
+import type { Publication } from './types';
 
 interface PublicationsTabProps {
   publications: Publication[];
   onSaveGrade?: (pubId: string, grade: string) => void;
   teacherName: string;
+  onCreatePublication?: (pub: Omit<Publication, 'id'>) => void;
 }
 
 const STATUS_COLORS: Record<Publication['status'], string> = {
@@ -23,8 +24,53 @@ const STATUS_LABELS: Record<Publication['status'], string> = {
   archived: 'Archivé',
 };
 
-export default function PublicationsTab({ publications, teacherName }: PublicationsTabProps) {
+export default function PublicationsTab({ 
+  publications, 
+  teacherName,
+  onCreatePublication 
+}: PublicationsTabProps) {
   const [selectedPub, setSelectedPub] = useState<Publication | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Form State
+  const [nom, setNom] = useState('');
+  const [lien, setLien] = useState('');
+  const [description, setDescription] = useState('');
+  const [photo, setPhoto] = useState('');
+  const [status, setStatus] = useState<Publication['status']>('published');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!nom.trim()) {
+      setError('Veuillez renseigner le nom de la publication.');
+      return;
+    }
+    if (!description.trim()) {
+      setError('Veuillez renseigner la description.');
+      return;
+    }
+
+    if (onCreatePublication) {
+      onCreatePublication({
+        nom: nom.trim(),
+        lien: lien.trim(),
+        description: description.trim(),
+        photo: photo.trim() || '/default-photo.png',
+        status
+      });
+    }
+
+    // Reset Form
+    setNom('');
+    setLien('');
+    setDescription('');
+    setPhoto('');
+    setStatus('published');
+    setIsModalOpen(false);
+  };
 
   return (
     <>
@@ -39,9 +85,17 @@ export default function PublicationsTab({ publications, teacherName }: Publicati
             <h2 className="text-2xl font-black text-black tracking-tight uppercase leading-none">Publications & Projets</h2>
             <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-2">GESTION DES PUBLICATIONS ASSOCIÉES AUX VMs DÉPLOYÉES</p>
           </div>
-          <span className="self-start text-[10px] font-black px-3 py-1.5 border-2 border-black rounded-lg uppercase tracking-wider text-slate-700 select-none">
-            {publications.length} Publications
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black px-3 py-2.5 border-2 border-slate-200 rounded-xl uppercase tracking-wider text-slate-700 select-none">
+              {publications.length} Publications
+            </span>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+            >
+              <Plus className="w-3.5 h-3.5" /> Nouvelle Publication
+            </button>
+          </div>
         </div>
 
         {/* Grille */}
@@ -72,7 +126,7 @@ export default function PublicationsTab({ publications, teacherName }: Publicati
 
                   {/* Photo si disponible */}
                   {pub.photo && pub.photo !== '' && (
-                    <div className="w-full h-28 bg-slate-200 rounded-xl overflow-hidden">
+                    <div className="w-full h-28 bg-slate-200 rounded-xl overflow-hidden border border-slate-200/50">
                       <img src={pub.photo} alt={pub.nom} className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -142,6 +196,151 @@ export default function PublicationsTab({ publications, teacherName }: Publicati
             >
               Fermer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Création de Publication */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative bg-white border border-slate-200 rounded-2xl w-full max-w-lg p-8 overflow-hidden shadow-xl max-h-[90vh] flex flex-col">
+            <button onClick={() => { setIsModalOpen(false); setError(''); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 transition-colors cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="border-b border-slate-100 pb-4 mb-5 text-center pt-2">
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
+                Nouvelle Publication
+              </h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Publier un projet académique ou une VM sur la plateforme</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto flex-grow pr-1">
+              {error && (
+                <div className="flex items-start gap-2 p-3.5 bg-red-50 border border-red-200 rounded-xl text-[11px] text-red-700 font-semibold leading-relaxed">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {/* Titre / Nom */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
+                  Nom du projet / Publication <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <BookOpen className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ex. Portail de Supervision Multi-Agent"
+                    value={nom}
+                    onChange={(e) => setNom(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Lien externe */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
+                  Lien URL (ex: GitHub, documentation)
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Link className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="url"
+                    placeholder="https://github.com/..."
+                    value={lien}
+                    onChange={(e) => setLien(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Image URL */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
+                  URL de la Photo de couverture (optionnel)
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Image className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="/default-photo.png"
+                    value={photo}
+                    onChange={(e) => setPhoto(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
+                  Description / Résumé du projet <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 pointer-events-none text-slate-400">
+                    <FileText className="w-4 h-4" />
+                  </span>
+                  <textarea
+                    rows={4}
+                    required
+                    placeholder="Décrivez brièvement le but, l'architecture et l'utilité académique de cette publication..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-medium resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Statut */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
+                  Statut initial
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {(['published', 'draft', 'archived'] as const).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setStatus(st)}
+                      className={`p-2.5 border rounded-xl text-center transition-all ${
+                        status === st
+                          ? 'border-blue-600 bg-blue-50/20 text-blue-700'
+                          : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-600'
+                      }`}
+                    >
+                      <span className="text-xs font-black block">{STATUS_LABELS[st]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions boutons */}
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => { setIsModalOpen(false); setError(''); }}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-200"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" /> Enregistrer
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
