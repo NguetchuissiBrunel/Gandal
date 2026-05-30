@@ -1,266 +1,420 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2 } from 'lucide-react';
-import { useResponsiveChatbot } from '@/hooks/useResponsiveChatbot';
+import React, { useState, useRef, useEffect } from 'react';
+import { MessageCircle, X, Send, Minimize2, Maximize2, Bot, Square } from 'lucide-react';
+import { useChatbot } from '../contexts/ChatbotContext';
 
 interface Message {
   id: string;
   text: string;
-  sender: 'user' | 'bot';
+  isUser: boolean;
   timestamp: Date;
 }
 
-interface FloatingChatbotProps {
-  className?: string;
+interface Position {
+  x: number;
+  y: number;
 }
 
-export default function FloatingChatbot({ className = '' }: FloatingChatbotProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+const FloatingChatbot: React.FC = () => {
+  const { isOpen, setIsOpen, position, setPosition, isMinimized, setIsMinimized } = useChatbot();
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       text: 'Bonjour ! Je suis votre assistant GANDAL. Comment puis-je vous aider aujourd\'hui ?',
-      sender: 'bot',
-      timestamp: new Date()
-    }
+      isUser: false,
+      timestamp: new Date(),
+    },
   ]);
   const [inputText, setInputText] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 });
+  const [dragStartTime, setDragStartTime] = useState(0);
+  const [dragStartPos, setDragStartPos] = useState<Position>({ x: 0, y: 0 });
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [savedPosition, setSavedPosition] = useState<Position>({ x: 0, y: 0 });
   
-  const { isMobile, isTablet, getChatbotStyles } = useResponsiveChatbot();
-  const styles = getChatbotStyles(isOpen, isMinimized);
+  const chatbotRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Handle dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!chatbotRef.current) return;
+    
+    // Prevent dragging when clicking on buttons inside the chat
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT') {
+      return;
+    }
+    
+    const rect = chatbotRef.current.getBoundingClientRect();
+    const startPos = { x: e.clientX, y: e.clientY };
+    
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+    setDragStartTime(Date.now());
+    setDragStartPos(startPos);
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const newX = e.clientX - dragOffset.x;
+    const newY = e.clientY - dragOffset.y;
+    
+    // Keep within viewport bounds
+    const chatWidth = isOpen ? (isMobile ? 350 : 400) : 60;
+    const chatHeight = isOpen ? (isMobile ? 500 : 500) : 60;
+    const maxX = window.innerWidth - chatWidth;
+    const maxY = window.innerHeight - chatHeight;
+    
+    setPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY)),
+    });
+  };
+
+  const handleMouseUp = (e: MouseEvent) => {
+    if (isDragging) {
+      const dragTime = Date.now() - dragStartTime;
+      const dragDistance = Math.sqrt(
+        Math.pow(e.clientX - dragStartPos.x, 2) + Math.pow(e.clientY - dragStartPos.y, 2)
+      );
+      
+      // If it was a quick click (< 300ms) and minimal movement (< 10px), treat as click to toggle
+      if (dragTime < 300 && dragDistance < 10) {
+        setIsOpen(!isOpen);
+      }
+    }
+    setIsDragging(false);
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragOffset, isOpen, isMobile]);
+
+  // Handle touch events for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!chatbotRef.current) return;
+    
+    // Prevent dragging when touching buttons inside the chat
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT') {
+      return;
+    }
+    
+    const touch = e.touches[0];
+    const rect = chatbotRef.current.getBoundingClientRect();
+    const startPos = { x: touch.clientX, y: touch.clientY };
+    
+    setDragOffset({
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    });
+    setDragStartTime(Date.now());
+    setDragStartPos(startPos);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const newX = touch.clientX - dragOffset.x;
+    const newY = touch.clientY - dragOffset.y;
+    
+    const chatWidth = isOpen ? 350 : 60;
+    const chatHeight = isOpen ? 500 : 60;
+    const maxX = window.innerWidth - chatWidth;
+    const maxY = window.innerHeight - chatHeight;
+    
+    setPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY)),
+    });
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (isDragging) {
+      const dragTime = Date.now() - dragStartTime;
+      const touch = e.changedTouches[0];
+      const dragDistance = Math.sqrt(
+        Math.pow(touch.clientX - dragStartPos.x, 2) + Math.pow(touch.clientY - dragStartPos.y, 2)
+      );
+      
+      // If it was a quick tap (< 300ms) and minimal movement (< 10px), treat as tap to toggle
+      if (dragTime < 300 && dragDistance < 10) {
+        setIsOpen(!isOpen);
+      }
+    }
+    setIsDragging(false);
+  };
 
   useEffect(() => {
-    if (isOpen && !isMinimized && inputRef.current) {
-      inputRef.current.focus();
+    if (isDragging) {
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+      return () => {
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
     }
-  }, [isOpen, isMinimized]);
+  }, [isDragging, dragOffset, isOpen]);
 
-  // Empêcher le scroll du body quand le chat est ouvert sur mobile
-  useEffect(() => {
-    if (isMobile && isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isMobile, isOpen]);
-
-  const handleSendMessage = async () => {
+  const sendMessage = () => {
     if (!inputText.trim()) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText.trim(),
-      sender: 'user',
-      timestamp: new Date()
+      text: inputText,
+      isUser: true,
+      timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsTyping(true);
 
-    // Simuler une réponse du bot (remplacez par votre API)
+    // Simulate bot response with typing delay
     setTimeout(() => {
+      setIsTyping(false);
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: getBotResponse(userMessage.text),
-        sender: 'bot',
-        timestamp: new Date()
+        text: getBotResponse(inputText),
+        isUser: false,
+        timestamp: new Date(),
       };
       setMessages(prev => [...prev, botResponse]);
-      setIsTyping(false);
-    }, 1000 + Math.random() * 2000);
+    }, 1500);
+  };
+
+  const toggleMaximize = () => {
+    if (!isMaximized) {
+      // Save current position before maximizing
+      setSavedPosition(position);
+      setPosition({ x: 0, y: 0 });
+      setIsMaximized(true);
+    } else {
+      // Restore saved position
+      setPosition(savedPosition);
+      setIsMaximized(false);
+    }
   };
 
   const getBotResponse = (userInput: string): string => {
     const input = userInput.toLowerCase();
     
-    if (input.includes('vm') || input.includes('machine virtuelle')) {
-      return 'Je peux vous aider avec la gestion des machines virtuelles. Vous pouvez créer, modifier ou supprimer des VMs depuis l\'onglet "Instancier" de votre dashboard.';
-    }
-    
-    if (input.includes('étudiant') || input.includes('inscription')) {
-      return 'Pour gérer les inscriptions d\'étudiants, rendez-vous dans l\'onglet "Inscriptions" où vous pouvez approuver ou rejeter les demandes de comptes.';
-    }
-    
-    if (input.includes('publication')) {
-      return 'Vous pouvez gérer vos publications dans l\'onglet "Publications". Ajoutez de nouveaux projets ou modifiez les existants.';
-    }
-    
-    if (input.includes('profil')) {
-      return 'Votre profil peut être modifié dans l\'onglet "Mon Profil". Vous y trouverez vos informations personnelles et statistiques.';
+    if (input.includes('bonjour') || input.includes('salut') || input.includes('hello')) {
+      return 'Bonjour ! Comment puis-je vous aider avec la plateforme GANDAL ?';
     }
     
     if (input.includes('aide') || input.includes('help')) {
-      return 'Je suis là pour vous aider ! Vous pouvez me poser des questions sur :\n• La gestion des VMs\n• Les inscriptions d\'étudiants\n• Vos publications\n• Votre profil\n• L\'utilisation du dashboard';
+      return 'Je peux vous aider avec :\n• Navigation dans la plateforme\n• Gestion des VMs\n• Questions sur les projets\n• Support technique\n\nQue souhaitez-vous savoir ?';
     }
     
-    return 'Je comprends votre question. En tant qu\'assistant GANDAL, je peux vous aider avec la gestion de votre dashboard enseignant. Pouvez-vous être plus précis sur ce que vous souhaitez faire ?';
+    if (input.includes('vm') || input.includes('machine virtuelle')) {
+      return 'Pour les machines virtuelles, vous pouvez :\n• Créer de nouvelles instances\n• Gérer vos VMs existantes\n• Configurer les ressources\n• Accéder aux logs\n\nRendez-vous dans l\'onglet "VMs" de votre dashboard.';
+    }
+    
+    if (input.includes('projet') || input.includes('project')) {
+      return 'Pour vos projets académiques :\n• Consultez la section "Publications"\n• Gérez les inscriptions étudiantes\n• Suivez l\'avancement via "Instanciation"\n\nBesoin d\'aide spécifique ?';
+    }
+
+    if (input.includes('enseignant') || input.includes('teacher') || input.includes('prof')) {
+      return 'En tant qu\'enseignant, vous avez accès à :\n• Dashboard enseignant (/dashboard/teacher)\n• Gestion des inscriptions étudiantes\n• Suivi des projets et publications\n• Administration des VMs\n\nQuelle fonctionnalité vous intéresse ?';
+    }
+    
+    return 'Je comprends votre question. Pour une assistance plus détaillée, n\'hésitez pas à contacter l\'équipe support ou consulter la documentation de la plateforme GANDAL.';
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      sendMessage();
     }
   };
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
-    setIsMinimized(false);
-  };
-
-  const toggleMinimize = () => {
-    setIsMinimized(!isMinimized);
-  };
+  const TypingIndicator = () => (
+    <div className="mb-4 text-left">
+      <div className="inline-block bg-white text-gray-800 border border-gray-200 p-3 rounded-lg">
+        <div className="flex items-center space-x-1">
+          <Bot size={16} className="text-blue-600" />
+          <span className="text-sm text-gray-600">Assistant GANDAL écrit</span>
+          <div className="flex space-x-1 ml-2">
+            <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <>
-      {/* Bouton flottant */}
-      {!isOpen && (
-        <button
-          onClick={toggleChat}
-          className={`${styles.button} bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group chatbot-button chatbot-focus ${className}`}
-          aria-label="Ouvrir le chatbot"
+    <div
+      ref={chatbotRef}
+      className={`fixed z-50 transition-all duration-300 chatbot-container ${
+        isDragging ? 'cursor-grabbing chatbot-dragging' : 'cursor-grab'
+      } ${isOpen ? 'chatbot-open-animation' : ''}`}
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+      }}
+    >
+      {!isOpen ? (
+        // Floating Icon
+        <div
+          className={`bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer chatbot-icon-pulse ${
+            isMobile ? 'p-3' : 'p-4'
+          } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
-          <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
-          <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full notification-badge" />
-        </button>
-      )}
-
-      {/* Overlay pour mobile */}
-      {isOpen && isMobile && (
-        <div className={styles.overlay} onClick={toggleChat} />
-      )}
-
-      {/* Interface de chat */}
-      {isOpen && (
-        <div className={`${styles.container} chatbot-enter ${isMobile ? 'chatbot-mobile-fullscreen' : ''}`}>
+          <MessageCircle size={isMobile ? 20 : 24} />
+        </div>
+      ) : (
+        // Chat Interface
+        <div className={`bg-white shadow-2xl border border-gray-200 transition-all duration-300 ${
+          isMaximized 
+            ? 'chatbot-fullscreen' 
+            : `${isMobile ? 'w-80 h-96 chatbot-mobile' : 'w-96 h-[500px]'} rounded-lg`
+        }`}>
           {/* Header */}
-          <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm">Assistant GANDAL</h3>
-                <p className="text-xs text-blue-100">En ligne</p>
-              </div>
+          <div
+            className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between ${
+              isMaximized ? 'cursor-default' : 'cursor-move chatbot-drag-indicator rounded-t-lg'
+            }`}
+            onMouseDown={isMaximized ? undefined : handleMouseDown}
+            onTouchStart={isMaximized ? undefined : handleTouchStart}
+          >
+            <div className="flex items-center space-x-2">
+              <Bot size={20} />
+              <span className="font-semibold text-sm sm:text-base">Assistant GANDAL</span>
             </div>
-            <div className="flex items-center gap-2">
-              {!isMobile && (
-                <button
-                  onClick={toggleMinimize}
-                  className="p-1 hover:bg-blue-500 rounded transition-colors duration-200"
-                  aria-label={isMinimized ? "Agrandir" : "Réduire"}
-                >
-                  {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-                </button>
-              )}
+            <div className="flex items-center space-x-2">
               <button
-                onClick={toggleChat}
-                className="p-1 hover:bg-blue-500 rounded transition-colors duration-200"
-                aria-label="Fermer le chat"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleMaximize();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="hover:bg-blue-700 p-1 rounded transition-colors"
+                title={isMaximized ? "Restaurer" : "Agrandir"}
               >
-                <X className="w-4 h-4" />
+                {isMaximized ? <Square size={16} /> : <Maximize2 size={16} />}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  setIsMaximized(false);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="hover:bg-blue-700 p-1 rounded transition-colors"
+                title="Fermer"
+              >
+                <X size={16} />
               </button>
             </div>
           </div>
 
-          {(!isMinimized || isMobile) && (
-            <>
-              {/* Messages */}
-              <div className={`flex-1 overflow-y-auto p-4 space-y-4 chatbot-messages ${isMobile ? 'h-full' : isTablet ? 'h-64' : 'h-80'}`}>
+          {/* Messages and Input - Always visible when open */}
+          <>
+            {/* Messages */}
+            <div className={`flex-1 p-4 overflow-y-auto bg-gray-50 chatbot-messages ${
+              isMaximized 
+                ? 'h-[calc(100vh-140px)]' 
+                : isMobile 
+                  ? 'h-64' 
+                  : 'h-80'
+            }`}>
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex gap-3 message-enter ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`mb-4 ${message.isUser ? 'text-right' : 'text-left'}`}
                   >
-                    {message.sender === 'bot' && (
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                        <Bot className="w-4 h-4 text-blue-600" />
-                      </div>
-                    )}
                     <div
-                      className={`max-w-[70%] p-3 rounded-2xl text-sm ${
-                        message.sender === 'user'
-                          ? 'message-user text-white rounded-br-md'
-                          : 'message-bot text-slate-900 rounded-bl-md'
+                      className={`inline-block max-w-xs sm:max-w-sm p-3 rounded-lg ${
+                        message.isUser
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                          : 'bg-white text-gray-800 border border-gray-200'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{message.text}</p>
-                      <p className={`text-xs mt-1 ${message.sender === 'user' ? 'text-blue-100' : 'text-slate-500'}`}>
-                        {message.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      <p className="text-sm whitespace-pre-line">{message.text}</p>
+                      <p className={`text-xs mt-1 ${
+                        message.isUser ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
+                        {message.timestamp.toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
                     </div>
-                    {message.sender === 'user' && (
-                      <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center shrink-0">
-                        <User className="w-4 h-4 text-slate-600" />
-                      </div>
-                    )}
                   </div>
                 ))}
-                
-                {isTyping && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                      <Bot className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="bg-slate-100 p-3 rounded-2xl rounded-bl-md">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-slate-400 rounded-full typing-indicator" />
-                        <div className="w-2 h-2 bg-slate-400 rounded-full typing-indicator" />
-                        <div className="w-2 h-2 bg-slate-400 rounded-full typing-indicator" />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {isTyping && <TypingIndicator />}
                 <div ref={messagesEndRef} />
               </div>
 
               {/* Input */}
-              <div className="p-4 border-t border-slate-200 bg-white">
-                <div className="flex gap-2">
+              <div className="p-4 border-t border-gray-200">
+                <div className="flex space-x-2">
                   <input
-                    ref={inputRef}
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Tapez votre message..."
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm chatbot-focus"
+                    className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     disabled={isTyping}
                   />
                   <button
-                    onClick={handleSendMessage}
+                    onClick={sendMessage}
                     disabled={!inputText.trim() || isTyping}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
-                    aria-label="Envoyer le message"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 text-white p-2 rounded-lg transition-all duration-200"
                   >
-                    <Send className="w-4 h-4" />
+                    <Send size={16} />
                   </button>
                 </div>
               </div>
             </>
-          )}
         </div>
       )}
-    </>
+    </div>
   );
-}
+};
+
+export default FloatingChatbot;

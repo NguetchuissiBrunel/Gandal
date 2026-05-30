@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "../styles/chatbot.css";
+import FloatingChatbot from "../components/FloatingChatbot";
+import { ChatbotProvider } from "../contexts/ChatbotContext";
 
 export const metadata: Metadata = {
   title: "GANDAL — Plateforme Data Center ENSPY",
@@ -37,7 +39,12 @@ export default function RootLayout({
       lang="fr"
       className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <ChatbotProvider>
+          {children}
+          <FloatingChatbot />
+        </ChatbotProvider>
+      </body>
     </html>
   );
 }
