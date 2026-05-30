@@ -52,6 +52,13 @@ const FloatingChatbot: React.FC = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Adjust position when window is resized or chat is opened
+  useEffect(() => {
+    if (isOpen && !isMaximized) {
+      adjustPositionToViewport();
+    }
+  }, [isOpen, isMobile, isMaximized]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -106,7 +113,13 @@ const FloatingChatbot: React.FC = () => {
       
       // If it was a quick click (< 300ms) and minimal movement (< 10px), treat as click to toggle
       if (dragTime < 300 && dragDistance < 10) {
-        setIsOpen(!isOpen);
+        const newIsOpen = !isOpen;
+        setIsOpen(newIsOpen);
+        
+        // When opening, adjust position to keep window in viewport
+        if (newIsOpen && !isMaximized) {
+          adjustPositionToViewport();
+        }
       }
     }
     setIsDragging(false);
@@ -175,7 +188,13 @@ const FloatingChatbot: React.FC = () => {
       
       // If it was a quick tap (< 300ms) and minimal movement (< 10px), treat as tap to toggle
       if (dragTime < 300 && dragDistance < 10) {
-        setIsOpen(!isOpen);
+        const newIsOpen = !isOpen;
+        setIsOpen(newIsOpen);
+        
+        // When opening, adjust position to keep window in viewport
+        if (newIsOpen && !isMaximized) {
+          adjustPositionToViewport();
+        }
       }
     }
     setIsDragging(false);
@@ -229,6 +248,25 @@ const FloatingChatbot: React.FC = () => {
       // Restore saved position
       setPosition(savedPosition);
       setIsMaximized(false);
+    }
+  };
+
+  const adjustPositionToViewport = () => {
+    // Get chat window dimensions
+    const chatWidth = isMobile ? 320 : 384; // w-80 = 320px, w-96 = 384px
+    const chatHeight = isMobile ? 384 : 500; // h-96 = 384px, h-[500px] = 500px
+    
+    // Calculate maximum allowed position
+    const maxX = window.innerWidth - chatWidth - 20; // 20px margin
+    const maxY = window.innerHeight - chatHeight - 20; // 20px margin
+    
+    // Adjust position if needed
+    const newX = Math.max(20, Math.min(position.x, maxX));
+    const newY = Math.max(20, Math.min(position.y, maxY));
+    
+    // Only update if position changed
+    if (newX !== position.x || newY !== position.y) {
+      setPosition({ x: newX, y: newY });
     }
   };
 
