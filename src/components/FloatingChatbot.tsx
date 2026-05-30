@@ -304,8 +304,8 @@ const FloatingChatbot: React.FC = () => {
   };
 
   const TypingIndicator = () => (
-    <div className="mb-4 text-left">
-      <div className="inline-block bg-white text-gray-800 border border-gray-200 p-3 rounded-lg">
+    <div className="mb-4 text-left relative z-10">
+      <div className="inline-block bg-white text-gray-800 border border-gray-200 p-3 rounded-2xl shadow-sm">
         <div className="flex items-center space-x-1">
           <Bot size={16} className="text-blue-600" />
           <span className="text-sm text-gray-600">Assistant GANDAL écrit</span>
@@ -343,15 +343,15 @@ const FloatingChatbot: React.FC = () => {
         </div>
       ) : (
         // Chat Interface
-        <div className={`bg-white shadow-2xl border border-gray-200 transition-all duration-300 ${
+        <div className={`bg-white shadow-2xl border border-gray-200 transition-all duration-300 overflow-hidden ${
           isMaximized 
             ? 'chatbot-fullscreen' 
-            : `${isMobile ? 'w-80 h-96 chatbot-mobile' : 'w-96 h-[500px]'} rounded-lg`
+            : `${isMobile ? 'w-80 h-96 chatbot-mobile' : 'w-96 h-[500px]'} rounded-3xl`
         }`}>
           {/* Header */}
           <div
             className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between ${
-              isMaximized ? 'cursor-default' : 'cursor-move chatbot-drag-indicator rounded-t-lg'
+              isMaximized ? 'cursor-default' : 'cursor-move chatbot-drag-indicator rounded-t-3xl'
             }`}
             onMouseDown={isMaximized ? undefined : handleMouseDown}
             onTouchStart={isMaximized ? undefined : handleTouchStart}
@@ -392,23 +392,78 @@ const FloatingChatbot: React.FC = () => {
           {/* Messages and Input - Always visible when open */}
           <>
             {/* Messages */}
-            <div className={`flex-1 p-4 overflow-y-auto bg-gray-50 chatbot-messages ${
+            <div className={`flex-1 p-4 overflow-y-auto bg-gray-50 chatbot-messages relative ${
               isMaximized 
                 ? 'h-[calc(100vh-140px)]' 
                 : isMobile 
                   ? 'h-64' 
                   : 'h-80'
             }`}>
+              {/* Bot Icons Watermark - Multiple scattered icons */}
+              <div className="chatbot-watermark chatbot-watermark-1">
+                <Bot size={60} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-2">
+                <Bot size={50} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-3">
+                <Bot size={55} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-4">
+                <Bot size={45} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-5">
+                <Bot size={52} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-6">
+                <Bot size={48} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-7">
+                <Bot size={58} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-8">
+                <Bot size={46} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-9">
+                <Bot size={54} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-10">
+                <Bot size={50} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-11">
+                <Bot size={56} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-12">
+                <Bot size={44} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-13">
+                <Bot size={51} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-14">
+                <Bot size={49} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-15">
+                <Bot size={53} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-16">
+                <Bot size={47} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-17">
+                <Bot size={57} strokeWidth={1} />
+              </div>
+              <div className="chatbot-watermark chatbot-watermark-18">
+                <Bot size={45} strokeWidth={1} />
+              </div>
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`mb-4 ${message.isUser ? 'text-right' : 'text-left'}`}
+                    className={`mb-4 ${message.isUser ? 'text-right' : 'text-left'} relative z-10`}
                   >
                     <div
-                      className={`inline-block max-w-xs sm:max-w-sm p-3 rounded-lg ${
+                      className={`inline-block max-w-xs sm:max-w-sm p-3 rounded-2xl ${
                         message.isUser
                           ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
-                          : 'bg-white text-gray-800 border border-gray-200'
+                          : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-line">{message.text}</p>
@@ -436,13 +491,13 @@ const FloatingChatbot: React.FC = () => {
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Tapez votre message..."
-                    className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="flex-1 p-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     disabled={isTyping}
                   />
                   <button
                     onClick={sendMessage}
                     disabled={!inputText.trim() || isTyping}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 text-white p-2 rounded-lg transition-all duration-200"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 text-white p-2 rounded-2xl transition-all duration-200"
                   >
                     <Send size={16} />
                   </button>

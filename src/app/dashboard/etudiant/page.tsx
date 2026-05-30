@@ -12,6 +12,7 @@ import {
   User,
   LogOut,
   ArrowLeft,
+  Globe,
 } from 'lucide-react';
 
 import Screw3D from '@/components/Screw3D';
@@ -20,6 +21,7 @@ import VMsTab from '@/components/dashboard/VMsTab';
 import RequestsTab from '@/components/dashboard/RequestsTab';
 import PublicationsTab from '@/components/dashboard/PublicationsTab';
 import ProfileTab from '@/components/dashboard/ProfileTab';
+import DNSTab from '@/components/dashboard/DNSTab';
 
 interface VM {
   id: string;
@@ -88,7 +90,7 @@ type ToastType = 'success' | 'danger' | 'info';
 
 export default function StudentDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'vms' | 'requests' | 'publications' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'vms' | 'requests' | 'publications' | 'dns' | 'profile'>('overview');
 
   const [studentInfo, setStudentInfo] = useState(INITIAL_STUDENT);
   const [vms, setVms] = useState<VM[]>(INITIAL_VMS);
@@ -157,6 +159,7 @@ export default function StudentDashboard() {
     { id: 'vms' as const, label: 'Mes VMs', icon: Server, badge: activeVms },
     { id: 'requests' as const, label: 'Requêtes', icon: FileText, badge: pendingRequests },
     { id: 'publications' as const, label: 'Publications', icon: BookOpen },
+    { id: 'dns' as const, label: 'DNS', icon: Globe },
     { id: 'profile' as const, label: 'Mon Profil', icon: User },
   ];
 
@@ -344,6 +347,10 @@ export default function StudentDashboard() {
               vms={vms}
               onSubmitPublication={handleSubmitPublication}
             />
+          )}
+
+          {activeTab === 'dns' && (
+            <DNSTab vms={vms} />
           )}
 
           {activeTab === 'profile' && (
