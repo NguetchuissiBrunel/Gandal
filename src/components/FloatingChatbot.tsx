@@ -19,6 +19,31 @@ interface Position {
 const FloatingChatbot: React.FC = () => {
   const { isOpen, setIsOpen, position, setPosition, isMinimized, setIsMinimized } = useChatbot();
   
+  // Check if we're on the intro page
+  const [isIntroPage, setIsIntroPage] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkIntroPage = () => {
+        const hasSeenIntro = sessionStorage.getItem('gandal_intro_seen') === 'true';
+        setIsIntroPage(!hasSeenIntro);
+      };
+      
+      checkIntroPage();
+      
+      // Listen for storage changes
+      window.addEventListener('storage', checkIntroPage);
+      
+      // Check periodically in case sessionStorage changes
+      const interval = setInterval(checkIntroPage, 500);
+      
+      return () => {
+        window.removeEventListener('storage', checkIntroPage);
+        clearInterval(interval);
+      };
+    }
+  }, []);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -36,21 +61,39 @@ const FloatingChatbot: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [savedPosition, setSavedPosition] = useState<Position>({ x: 0, y: 0 });
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const chatbotRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Detect mobile device
+  // Detect mobile device and reposition on resize
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      const wasMobile = isMobile;
+      const nowMobile = window.innerWidth < 640;
+      setIsMobile(nowMobile);
+      
+      // Reposition chatbot when switching between mobile/desktop
+      if (wasMobile !== nowMobile || !isInitialized) {
+        const chatWidth = 80;
+        const chatHeight = 80;
+        const margin = nowMobile ? 10 : 20;
+        const defaultX = window.innerWidth - chatWidth - margin;
+        const defaultY = window.innerHeight - chatHeight - margin;
+        
+        setPosition({
+          x: Math.max(margin, defaultX),
+          y: Math.max(margin, defaultY),
+        });
+        setIsInitialized(true);
+      }
     };
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [isMobile, isInitialized]);
 
   // Adjust position when window is resized or chat is opened
   useEffect(() => {
@@ -93,14 +136,15 @@ const FloatingChatbot: React.FC = () => {
     const newY = e.clientY - dragOffset.y;
     
     // Keep within viewport bounds
-    const chatWidth = isOpen ? (isMobile ? 350 : 400) : 60;
-    const chatHeight = isOpen ? (isMobile ? 500 : 500) : 60;
-    const maxX = window.innerWidth - chatWidth;
-    const maxY = window.innerHeight - chatHeight;
+    const chatWidth = isOpen ? (isMobile ? 280 : 384) : 60;
+    const chatHeight = isOpen ? (isMobile ? 384 : 500) : 60;
+    const margin = isMobile ? 10 : 20;
+    const maxX = window.innerWidth - chatWidth - margin;
+    const maxY = window.innerHeight - chatHeight - margin;
     
     setPosition({
-      x: Math.max(0, Math.min(newX, maxX)),
-      y: Math.max(0, Math.min(newY, maxY)),
+      x: Math.max(margin, Math.min(newX, maxX)),
+      y: Math.max(margin, Math.min(newY, maxY)),
     });
   };
 
@@ -167,14 +211,15 @@ const FloatingChatbot: React.FC = () => {
     const newX = touch.clientX - dragOffset.x;
     const newY = touch.clientY - dragOffset.y;
     
-    const chatWidth = isOpen ? 350 : 60;
-    const chatHeight = isOpen ? 500 : 60;
-    const maxX = window.innerWidth - chatWidth;
-    const maxY = window.innerHeight - chatHeight;
+    const chatWidth = isOpen ? 280 : 60;
+    const chatHeight = isOpen ? 384 : 60;
+    const margin = 10;
+    const maxX = window.innerWidth - chatWidth - margin;
+    const maxY = window.innerHeight - chatHeight - margin;
     
     setPosition({
-      x: Math.max(0, Math.min(newX, maxX)),
-      y: Math.max(0, Math.min(newY, maxY)),
+      x: Math.max(margin, Math.min(newX, maxX)),
+      y: Math.max(margin, Math.min(newY, maxY)),
     });
   };
 
@@ -253,16 +298,17 @@ const FloatingChatbot: React.FC = () => {
 
   const adjustPositionToViewport = () => {
     // Get chat window dimensions
-    const chatWidth = isMobile ? 320 : 384; // w-80 = 320px, w-96 = 384px
-    const chatHeight = isMobile ? 384 : 500; // h-96 = 384px, h-[500px] = 500px
+    const chatWidth = isMobile ? 280 : 384; // Réduit de 320 à 280 pour mobile
+    const chatHeight = isMobile ? 384 : 500;
     
-    // Calculate maximum allowed position
-    const maxX = window.innerWidth - chatWidth - 20; // 20px margin
-    const maxY = window.innerHeight - chatHeight - 20; // 20px margin
+    // Calculate maximum allowed position with more margin on mobile
+    const margin = isMobile ? 10 : 20;
+    const maxX = window.innerWidth - chatWidth - margin;
+    const maxY = window.innerHeight - chatHeight - margin;
     
     // Adjust position if needed
-    const newX = Math.max(20, Math.min(position.x, maxX));
-    const newY = Math.max(20, Math.min(position.y, maxY));
+    const newX = Math.max(margin, Math.min(position.x, maxX));
+    const newY = Math.max(margin, Math.min(position.y, maxY));
     
     // Only update if position changed
     if (newX !== position.x || newY !== position.y) {
@@ -303,6 +349,11 @@ const FloatingChatbot: React.FC = () => {
     }
   };
 
+  // Don't render chatbot on intro page
+  if (isIntroPage) {
+    return null;
+  }
+
   const TypingIndicator = () => (
     <div className="mb-4 text-left relative z-10">
       <div className="inline-block bg-white text-gray-800 border border-gray-200 p-3 rounded-2xl shadow-sm">
@@ -322,31 +373,37 @@ const FloatingChatbot: React.FC = () => {
   return (
     <div
       ref={chatbotRef}
-      className={`fixed z-50 transition-all duration-300 chatbot-container ${
+      className={`fixed transition-all chatbot-container ${
         isDragging ? 'cursor-grabbing chatbot-dragging' : 'cursor-grab'
-      } ${isOpen ? 'chatbot-open-animation' : ''}`}
+      } ${isOpen ? 'chatbot-open-animation' : ''} ${isMobile && !isOpen ? 'chatbot-mobile-fixed' : ''}`}
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
+        left: isMobile && !isOpen ? 'auto' : 0,
+        right: isMobile && !isOpen ? '10px' : 'auto',
+        bottom: isMobile && !isOpen ? '10px' : 'auto',
+        top: isMobile && !isOpen ? 'auto' : 0,
+        transform: isMobile && !isOpen ? 'none' : `translate(${position.x}px, ${position.y}px)`,
+        zIndex: 9999,
+        willChange: isDragging ? 'transform' : 'auto',
+        transition: isDragging ? 'none' : 'transform 0.3s ease-out',
       }}
     >
       {!isOpen ? (
         // Floating Icon
         <div
           className={`bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer chatbot-icon-pulse ${
-            isMobile ? 'p-3' : 'p-4'
+            isMobile ? 'p-4' : 'p-4'
           } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
         >
-          <MessageCircle size={isMobile ? 20 : 24} />
+          <MessageCircle size={isMobile ? 28 : 24} />
         </div>
       ) : (
         // Chat Interface
         <div className={`bg-white shadow-2xl border border-gray-200 transition-all duration-300 overflow-hidden ${
           isMaximized 
             ? 'chatbot-fullscreen' 
-            : `${isMobile ? 'w-80 h-96 chatbot-mobile' : 'w-96 h-[500px]'} rounded-3xl`
+            : `${isMobile ? 'w-[280px] h-96 chatbot-mobile' : 'w-96 h-[500px]'} rounded-3xl`
         }`}>
           {/* Header */}
           <div

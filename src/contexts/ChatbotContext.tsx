@@ -21,17 +21,21 @@ const ChatbotContext = createContext<ChatbotContextType | undefined>(undefined);
 export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
+  const [position, setPosition] = useState<Position>({ x: 20, y: 20 });
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load saved state from localStorage
+  // Initialize position and load saved state from localStorage (client-side only)
   useEffect(() => {
     try {
       const savedState = localStorage.getItem('gandal-chatbot-state');
       if (savedState) {
         const parsed = JSON.parse(savedState);
-        if (parsed.position) setPosition(parsed.position);
-        if (parsed.isMinimized !== undefined) setIsMinimized(parsed.isMinimized);
-        // Don't restore isOpen - always start closed
+        if (parsed.position) {
+          setPosition(parsed.position);
+        }
+        if (parsed.isMinimized !== undefined) {
+          setIsMinimized(parsed.isMinimized);
+        }
       } else {
         // Default position - bottom right corner
         const chatWidth = 80;
@@ -44,13 +48,17 @@ export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ child
           y: Math.max(20, defaultY),
         });
       }
+      setIsInitialized(true);
     } catch (error) {
       console.error('Error loading chatbot state:', error);
+      setIsInitialized(true);
     }
   }, []);
 
-  // Save state to localStorage
+  // Save state to localStorage (only after initialization)
   useEffect(() => {
+    if (!isInitialized) return;
+    
     try {
       const state = {
         position,
@@ -61,7 +69,7 @@ export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (error) {
       console.error('Error saving chatbot state:', error);
     }
-  }, [position, isMinimized]);
+  }, [position, isMinimized, isInitialized]);
 
   return (
     <ChatbotContext.Provider value={{

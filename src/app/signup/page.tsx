@@ -160,8 +160,8 @@ export default function SignupPage() {
         </div>
 
         {/* Logo cliquable */}
-        <Link href="/" className="flex flex-col items-center mb-6 group cursor-pointer">
-          <div className="relative w-24 h-24 mb-2 transition-transform duration-300 group-hover:scale-105">
+        <Link href="/" className="flex flex-col items-center mb-4 group cursor-pointer">
+          <div className="relative w-20 h-20 transition-transform duration-300 group-hover:scale-105">
             <Image
               src="/logo.png"
               alt="Gandal Logo"
@@ -170,9 +170,6 @@ export default function SignupPage() {
               priority
             />
           </div>
-          <h2 className="text-xl font-black tracking-wider uppercase text-slate-900 group-hover:text-blue-600 transition-colors">
-            GANDAL
-          </h2>
         </Link>
 
         {/* ── Panneau de contrôle ── */}

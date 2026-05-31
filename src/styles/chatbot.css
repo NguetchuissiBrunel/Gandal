@@ -360,6 +360,16 @@
   background: #a8a8a8;
 }
 
+/* Mobile fixed position for closed icon */
+.chatbot-mobile-fixed {
+  position: fixed !important;
+  right: 10px !important;
+  bottom: 10px !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .chatbot-mobile {

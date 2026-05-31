@@ -302,6 +302,17 @@ export default function IntroPage({ onComplete }: { onComplete: () => void }) {
             }}
           >
             <div style={{ textShadow: '0 4px 20px rgba(0,0,0,0.9)' }}>
+              {/* Logo GANDAL */}
+              <div className="relative w-24 h-24 mx-auto mb-4 opacity-90">
+                <Image
+                  src="/logo.png"
+                  alt="Gandal Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              
               <h2
                 className="font-black text-white leading-none"
                 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.8rem)' }}
@@ -309,7 +320,7 @@ export default function IntroPage({ onComplete }: { onComplete: () => void }) {
                 Bienvenue sur
                 <span
                   className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300"
-                  style={{ fontSize: 'clamp(2.5rem, 7vw, 5rem)', lineHeight: 1 }}
+                  style={{ fontSize: 'clamp(2.2rem, 5.5vw, 4rem)', lineHeight: 1 }}
                 >
                   GANDAL
                 </span>
