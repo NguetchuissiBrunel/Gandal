@@ -28,7 +28,7 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Veuillez remplir tous les champs requis.');
       return;
@@ -44,7 +44,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen bg-white text-slate-800 font-sans flex items-center justify-center p-6 overflow-hidden">
-      
+
       {/* ── ARRIÈRE-PLAN : CERCLES BLEUS ÉPARPILLÉS PLUS FLOUS (LIGHT MODE) ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-[140px] -right-[140px] w-[550px] h-[550px] rounded-full bg-blue-600/10 border border-blue-500/15 blur-md" />
@@ -53,7 +53,7 @@ export default function LoginPage() {
         <div className="absolute top-[-80px] left-[30%] w-[400px] h-[400px] rounded-full border border-blue-500/5 blur-[2px]" />
         <div className="absolute top-[300px] right-[8%] w-[120px] h-[120px] rounded-full bg-blue-500/12 border border-blue-400/12 blur-sm" />
         <div className="absolute top-[550px] -left-[180px] w-[420px] h-[420px] rounded-full bg-blue-500/10 border border-blue-400/12 blur-md" />
-        
+
         {/* Tiny dots cluster top-left */}
         <div className="absolute top-[200px] left-[20%] w-[24px] h-[24px] rounded-full bg-blue-600/25 blur-[1px]" />
         <div className="absolute top-[240px] left-[22%] w-[12px] h-[12px] rounded-full bg-blue-400/30 blur-[1px]" />
@@ -61,7 +61,7 @@ export default function LoginPage() {
       </div>
 
       <main className="relative z-10 w-full max-w-md my-8">
-        
+
         {/* Navigation de Retour Dédiée */}
         <div className="w-full flex justify-start mb-4">
           <Link
@@ -76,12 +76,12 @@ export default function LoginPage() {
         {/* Logo & Branding (Cliquable) */}
         <Link href="/" className="flex flex-col items-center mb-6 group cursor-pointer">
           {/* Logo GANDAL */}
-          <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-slate-200 bg-white p-1 mb-3 shadow-md shadow-slate-100 transition-transform duration-300 group-hover:scale-105">
+          <div className="relative w-24 h-24 mb-2 transition-transform duration-300 group-hover:scale-105">
             <Image
-              src="/logo-removebg-preview (1).png"
+              src="/logo.png"
               alt="Gandal Logo"
               fill
-              className="object-contain p-1"
+              className="object-contain"
               priority
             />
           </div>
@@ -90,7 +90,7 @@ export default function LoginPage() {
 
         {/* ── PANNEAU DE CONTRÔLE (FORMULAIRE BLANC) ── */}
         <div className="relative bg-slate-50/90 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.9)] rounded-2xl p-8 backdrop-blur-md">
-          
+
           {/* Vis sur les quatre côtés (dans les coins avec orientations uniques) */}
           <Screw className="top-3 left-3 rotate-12" />
           <Screw className="top-3 right-3 rotate-[75deg]" />
@@ -103,7 +103,7 @@ export default function LoginPage() {
 
           {!success ? (
             <form onSubmit={handleSubmit} className="space-y-6">
-              
+
               {/* Adresse mail */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-600 block">
