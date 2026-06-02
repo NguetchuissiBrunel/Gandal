@@ -73,10 +73,9 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {/* Logo & Branding (Cliquable) */}
-        <Link href="/" className="flex flex-col items-center mb-6 group cursor-pointer">
-          {/* Logo GANDAL */}
-          <div className="relative w-24 h-24 mb-2 transition-transform duration-300 group-hover:scale-105">
+        {/* Logo (Cliquable) */}
+        <Link href="/" className="flex flex-col items-center mb-4 group cursor-pointer">
+          <div className="relative w-20 h-20 transition-transform duration-300 group-hover:scale-105">
             <Image
               src="/logo.png"
               alt="Gandal Logo"
@@ -85,7 +84,6 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <h2 className="text-xl font-black tracking-wider uppercase text-slate-900 group-hover:text-blue-600 transition-colors">GANDAL</h2>
         </Link>
 
         {/* ── PANNEAU DE CONTRÔLE (FORMULAIRE BLANC) ── */}

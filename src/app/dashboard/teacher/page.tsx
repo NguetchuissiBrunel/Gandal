@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Screw3D from '@/components/Screw3D';
-import { User, Users, Server, PlusCircle, BookOpen, ArrowLeft } from 'lucide-react';
+import { User, Users, Server, PlusCircle, BookOpen, ArrowLeft, Globe } from 'lucide-react';
 
 import type { TeacherProfile, AccountRequest, VmRequest, Publication, DeployedVm, ToastType } from './_modules/types';
 import ProfileTab from './_modules/ProfileTab';
@@ -12,6 +12,8 @@ import InscriptionsTab from './_modules/InscriptionsTab';
 import VmsTab from './_modules/VmsTab';
 import InstantiationTab from './_modules/InstantiationTab';
 import PublicationsTab from './_modules/PublicationsTab';
+import FloatingChatbot from '@/components/FloatingChatbot';
+import DNSTab from '@/components/dashboard/DNSTab';
 
 const INITIAL_ACCOUNT_REQUESTS: AccountRequest[] = [
   { id: 'req-acc-1', nom: 'Jean Eboa', matricule: '22P250', organisation: 'ENSPY', email: 'jean.eboa@enspy-uy1.cm', justification: "Hébergement d'un projet de fin d'année en Systèmes Distribués (SMA).", statut: 'pending' },
@@ -35,6 +37,7 @@ const TABS = [
   { id: 'vms', label: 'Demandes VM', icon: Server },
   { id: 'instantiation', label: 'Instancier', icon: PlusCircle },
   { id: 'publications', label: 'Publications', icon: BookOpen },
+  { id: 'dns', label: 'DNS', icon: Globe },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -224,8 +227,14 @@ export default function TeacherDashboard() {
               }}
             />
           )}
+          {activeTab === 'dns' && (
+            <DNSTab vms={deployedVms.map(vm => ({ id: vm.id, name: vm.nom, ip: vm.ip }))} />
+          )}
         </section>
       </main>
+
+      {/* ── CHATBOT FLOTTANT ── */}
+      <FloatingChatbot />
     </div>
   );
 }

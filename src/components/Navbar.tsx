@@ -49,7 +49,7 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
             }}
             className="flex items-center gap-2 sm:gap-3 group cursor-pointer min-w-0 shrink"
           >
-            <div className="relative w-10 h-10 sm:w-12 sm:h-12 shrink-0 transition-transform duration-300 group-hover:scale-105">
+            <div className="relative w-12 h-12 shrink-0 transition-transform duration-300 group-hover:scale-105">
               <Image
                 src="/logo.png"
                 alt="Gandal Logo"
@@ -60,10 +60,10 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm sm:text-base md:text-lg font-black tracking-wider leading-none text-slate-900 truncate">
+                <span className="text-lg font-black tracking-wider leading-none text-slate-900 truncate">
                   GANDAL
                 </span>
-                <span className="text-[6px] sm:text-[7px] font-bold px-1 py-0.5 rounded uppercase bg-blue-50 text-blue-600 border border-blue-200 shrink-0">
+                <span className="text-[7px] font-bold px-1 py-0.5 rounded uppercase bg-blue-50 text-blue-600 border border-blue-200 shrink-0">
                   ENSPY
                 </span>
               </div>

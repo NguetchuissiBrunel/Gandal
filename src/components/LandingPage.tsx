@@ -480,7 +480,7 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
 
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 shrink-0">
+              <div className="relative w-10 h-10 shrink-0">
                 <Image
                   src="/logo.png"
                   alt="Gandal Project Logo"
@@ -488,7 +488,7 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
                   className="object-contain"
                 />
               </div>
-              <span className="text-lg font-black tracking-wider">GANDAL DATA CENTER</span>
+              <span className="text-base font-black tracking-wider">GANDAL DATA CENTER</span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed max-w-xs">
               Infrastructure locale de virtualisation et d'orchestration multi-agent pour les projets académiques du Département de Génie Informatique de l'École Nationale Supérieure Polytechnique de Yaoundé (ENSPY).
