@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,7 @@ import RequestsTab from '@/components/dashboard/RequestsTab';
 import PublicationsTab from '@/components/dashboard/PublicationsTab';
 import ProfileTab from '@/components/dashboard/ProfileTab';
 import DNSTab from '@/components/dashboard/DNSTab';
+import { apiClient } from '@/lib/apiClient';
 
 interface VM {
   id: string;
@@ -60,96 +61,298 @@ interface Publication {
   likes: number;
 }
 
-// ── Données initiales ──
-const INITIAL_STUDENT = {
-  username: 'Nguetchuissi Brunel',
-  email: 'nguetchuissi.brunel@enspy-uy1.cm',
-  matricule: '22P250',
-  level: '4',
-  department: 'Informatique',
+type ToastType = 'success' | 'danger' | 'info';
+
+const mapVMToUI = (vm: any): VM => {
+  let status: VM['status'] = 'Arrêtée';
+  if (vm.status === 'up') status = 'Active';
+  else if (vm.status === 'waiting') status = 'En cours';
+
+  let os: VM['os'] = 'Ubuntu';
+  const osLower = (vm.iso || '').toLowerCase();
+  if (osLower.includes('debian')) os = 'Debian';
+  else if (osLower.includes('centos')) os = 'CentOS';
+  else if (osLower.includes('win')) os = 'Windows';
+
+  return {
+    id: vm.id.toString(),
+    name: vm.node || `vm-${vm.id}`,
+    os,
+    status,
+    cpu: vm.n_cpu,
+    ram: vm.size_ram,
+    disk: vm.size_rom,
+    ip: vm.ip_address || '192.168.10.100',
+    project: vm.iso_image || 'Projet Gandal',
+    handover: (vm.date_stop_at ? 'Prêt' : 'Non initié') as VM['handover'],
+  };
 };
 
-const INITIAL_VMS: VM[] = [
-  { id: 'vm-1', name: 'gandal-ubuntu-srv', os: 'Ubuntu', status: 'Active', cpu: 2, ram: 4, disk: 40, ip: '192.168.10.15', project: 'Portail de Supervision Multi-Agent', handover: 'Prêt' },
-  { id: 'vm-2', name: 'enspy-web-portal', os: 'Debian', status: 'Arrêtée', cpu: 1, ram: 2, disk: 20, ip: '192.168.10.22', project: 'Gestionnaire de Bibliothèque ENSPY', handover: 'Non initié' },
-  { id: 'vm-3', name: 'traffic-control-ai', os: 'CentOS', status: 'Active', cpu: 4, ram: 8, disk: 100, ip: '192.168.10.35', project: 'Contrôle Intelligent de Trafic', handover: 'En cours' },
-];
+const mapRequestToUI = (req: any): RequestItem => {
+  let type = 'Requête';
+  let details = req.content || '';
+  if (req.type === 'r_create_vm') {
+    type = 'Création VM';
+    details = `OS: ${req.os}, RAM: ${req.size_ram}Go, ROM: ${req.size_rom}Go`;
+  } else if (req.type === 'r_delete_vm') {
+    type = 'Suppression VM';
+    details = `VM ID: ${req.vm_id}`;
+  } else if (req.type === 'r_account') {
+    type = 'Création Compte';
+    details = `Matricule: ${req.matricule}, Org: ${req.organisation}`;
+  }
 
-const INITIAL_REQUESTS: RequestItem[] = [
-  { id: 'req-1', type: 'Augmentation RAM', vmName: 'enspy-web-portal', details: '+2 Go RAM', justification: "Besoin de plus de mémoire vive pour compiler l'application Java Spring Boot.", status: 'Validée', date: '25 Mai 2026', adminFeedback: "Validée par l'administrateur. RAM allouée sur le nœud n°2." },
-  { id: 'req-2', type: 'Allocation CPU additionnels', vmName: 'gandal-ubuntu-srv', details: '+2 Cores CPU', justification: 'Nécessaire pour le calcul parallèle de nos 6 agents FIPA.', status: 'Rejetée', date: '26 Mai 2026', adminFeedback: 'Quota standard dépassé (max 8 cores). Libérez des ressources.' },
-  { id: 'req-3', type: 'Ouverture Port Réseau', vmName: 'traffic-control-ai', details: 'Port 8080 TCP (Public)', justification: "API du modèle de détection de trafic accessible pour l'application frontend.", status: 'En attente', date: "Aujourd'hui" },
-];
+  let status: RequestItem['status'] = 'En attente';
+  if (req.status === 'validated') status = 'Validée';
+  if (req.status === 'rejected') status = 'Rejetée';
 
-const INITIAL_PUBLICATIONS: Publication[] = [
-  { id: 'pub-1', title: 'Portail de Supervision Multi-Agent', category: 'Système Multi-Agent', desc: 'Orchestre les ressources de GANDAL via 6 agents FIPA.', vmName: 'gandal-ubuntu-srv', gitUrl: 'https://github.com/enspy-gi27/supervision-sma', date: '15 Mai 2026', checklist: { code: true, report: true, guide: true, vm: true }, views: 142, likes: 28 },
-  { id: 'pub-2', title: 'Gestionnaire de Bibliothèque ENSPY', category: 'Application Web', desc: "Plateforme de gestion d'ouvrages académiques pour étudiants et enseignants.", vmName: 'enspy-web-portal', gitUrl: 'https://github.com/enspy-gi27/library-mgr', date: '18 Mai 2026', checklist: { code: true, report: true, guide: false, vm: false }, views: 89, likes: 12 },
-];
+  return {
+    id: req.id.toString(),
+    type,
+    vmName: req.object || 'Gandal VM',
+    details,
+    justification: req.justification || req.content || 'Pas de justification fournie.',
+    status,
+    date: 'Récemment',
+    adminFeedback: req.feedback || undefined,
+  };
+};
 
-type ToastType = 'success' | 'danger' | 'info';
+const mapPublicationToUI = (pub: any): Publication => {
+  return {
+    id: pub.id.toString(),
+    title: pub.nom,
+    category: pub.photo || 'Projet Académique',
+    desc: pub.description || 'Pas de description.',
+    vmName: 'gandal-vm',
+    gitUrl: pub.lien || '',
+    date: 'Récemment',
+    checklist: { code: true, report: true, guide: false, vm: false },
+    views: 12,
+    likes: 3,
+  };
+};
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'vms' | 'requests' | 'publications' | 'dns' | 'profile'>('overview');
 
-  const [studentInfo, setStudentInfo] = useState(INITIAL_STUDENT);
-  const [vms, setVms] = useState<VM[]>(INITIAL_VMS);
-  const [requests, setRequests] = useState<RequestItem[]>(INITIAL_REQUESTS);
-  const [publications, setPublications] = useState<Publication[]>(INITIAL_PUBLICATIONS);
+  const [studentInfo, setStudentInfo] = useState<any>({
+    id: 0,
+    username: 'Chargement...',
+    email: 'chargement...',
+    matricule: '...',
+    level: '...',
+    department: '...',
+  });
+  const [vms, setVms] = useState<VM[]>([]);
+  const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const showToast = (message: string, type: ToastType = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
 
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const token = apiClient.getToken();
+        if (!token) {
+          router.replace('/login');
+          return;
+        }
+
+        const me = await apiClient.getMe();
+        if (me.type !== 'student') {
+          router.replace('/dashboard');
+          return;
+        }
+
+        setStudentInfo({
+          id: me.id,
+          username: me.username,
+          email: me.email,
+          matricule: me.matricule,
+          level: me.level,
+          department: me.departement,
+        });
+
+        const [vmsData, requestsData, publicationsData] = await Promise.all([
+          apiClient.getVms().catch(() => ({ items: [] })),
+          apiClient.getRequests().catch(() => ({ items: [] })),
+          apiClient.getPublications().catch(() => ({ items: [] })),
+        ]);
+
+        setVms(vmsData.items.map(mapVMToUI));
+        setRequests(requestsData.items.map(mapRequestToUI));
+        setPublications(publicationsData.items.map(mapPublicationToUI));
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        showToast('Erreur lors du chargement des données.', 'danger');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [router]);
+
   // ── Callbacks VMs ──
-  const handleCreateVM = (newVM: Omit<VM, 'id' | 'ip' | 'handover'>) => {
-    if (vms.some((v) => v.name.toLowerCase() === newVM.name.toLowerCase())) {
-      return 'Une machine virtuelle avec ce nom existe déjà.';
+  const handleCreateVM = async (newVM: Omit<VM, 'id' | 'ip' | 'handover'>) => {
+    try {
+      let statusVal: 'up' | 'waiting' | 'stopped' = 'stopped';
+      if (newVM.status === 'Active') statusVal = 'up';
+      else if (newVM.status === 'En cours') statusVal = 'waiting';
+
+      const response = await apiClient.createVm({
+        user_id: studentInfo.id,
+        size_rom: newVM.disk,
+        size_ram: newVM.ram,
+        n_cpu: newVM.cpu,
+        status: statusVal,
+        iso: newVM.os,
+        node: newVM.name,
+        iso_image: newVM.project,
+      });
+
+      const mapped = mapVMToUI(response);
+      setVms((prev) => [...prev, mapped]);
+      showToast(`VM "${mapped.name}" créée avec succès !`);
+      return true;
+    } catch (err: any) {
+      return err.message || 'Une erreur est survenue lors de la création de la VM.';
     }
-    const ip = `192.168.10.${Math.floor(Math.random() * 200) + 50}`;
-    const created: VM = { ...newVM, id: `vm-${Date.now()}`, ip, handover: 'Non initié' };
-    setVms((prev) => [...prev, created]);
-    setTimeout(() => setVms((prev) => prev.map((v) => v.id === created.id ? { ...v, status: 'Active' } : v)), 3000);
-    showToast(`VM "${created.name}" créée avec succès !`);
-    return true;
   };
 
-  const handleDeleteVM = (id: string) => {
-    setVms((prev) => prev.filter((v) => v.id !== id));
-    showToast('Machine virtuelle supprimée.', 'danger');
+  const handleDeleteVM = async (id: string) => {
+    try {
+      await apiClient.deleteVm(parseInt(id));
+      setVms((prev) => prev.filter((v) => v.id !== id));
+      showToast('Machine virtuelle supprimée.', 'danger');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la suppression de la VM.', 'danger');
+    }
   };
 
-  const handleUpdateVMStatus = (id: string, newStatus: 'Active' | 'Arrêtée' | 'En cours') => {
-    setVms((prev) => prev.map((v) => v.id === id ? { ...v, status: newStatus } : v));
+  const handleUpdateVMStatus = async (id: string, newStatus: 'Active' | 'Arrêtée' | 'En cours') => {
+    try {
+      const vmId = parseInt(id);
+      if (newStatus === 'Active') {
+        await apiClient.startVm(vmId);
+        setVms((prev) => prev.map((v) => v.id === id ? { ...v, status: 'Active' } : v));
+        showToast('Machine virtuelle démarrée.', 'success');
+      } else if (newStatus === 'Arrêtée') {
+        await apiClient.stopVm(vmId);
+        setVms((prev) => prev.map((v) => v.id === id ? { ...v, status: 'Arrêtée' } : v));
+        showToast('Machine virtuelle arrêtée.', 'info');
+      } else {
+        await apiClient.pauseVm(vmId);
+        setVms((prev) => prev.map((v) => v.id === id ? { ...v, status: 'En cours' } : v));
+        showToast('Machine virtuelle en pause.', 'info');
+      }
+    } catch (err: any) {
+      showToast(err.message || "Erreur de changement d'état de la VM.", 'danger');
+    }
   };
 
   // ── Callbacks Requêtes ──
-  const handleSubmitRequest = (newReq: Omit<RequestItem, 'id' | 'status' | 'date'>) => {
-    const created: RequestItem = { ...newReq, id: `req-${Date.now()}`, status: 'En attente', date: "Aujourd'hui" };
-    setRequests((prev) => [created, ...prev]);
-    showToast('Requête soumise avec succès.', 'info');
+  const handleSubmitRequest = async (newReq: Omit<RequestItem, 'id' | 'status' | 'date'>) => {
+    try {
+      const teachers = await apiClient.getTeachers().catch(() => ({ items: [] }));
+      const teacherId = teachers.items[0]?.id || 1;
+
+      let response;
+      if (newReq.type === 'Création VM') {
+        response = await apiClient.createVmRequest({
+          object: newReq.vmName,
+          content: newReq.justification,
+          teacher_id: teacherId,
+          size_rom: 40,
+          size_ram: 4,
+          os: 'Ubuntu',
+        });
+      } else {
+        response = await apiClient.createAccountRequest({
+          object: newReq.type,
+          content: `${newReq.vmName} - ${newReq.details}`,
+          nom: studentInfo.username,
+          email: studentInfo.email,
+          justification: newReq.justification,
+          matricule: studentInfo.matricule,
+          organisation: studentInfo.department,
+          teacher_id: teacherId,
+        });
+      }
+
+      const mapped = mapRequestToUI(response);
+      setRequests((prev) => [mapped, ...prev]);
+      showToast('Requête soumise avec succès.', 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la soumission de la requête.', 'danger');
+    }
   };
 
   // ── Callbacks Publications ──
-  const handleSubmitPublication = (newPub: Omit<Publication, 'id' | 'date' | 'views' | 'likes'>) => {
-    const created: Publication = { ...newPub, id: `pub-${Date.now()}`, date: "Aujourd'hui", views: 0, likes: 0 };
-    setPublications((prev) => [created, ...prev]);
-    const isComplete = Object.values(newPub.checklist).filter(Boolean).length === 4;
-    const associatedVm = vms.find((v) => v.name === newPub.vmName);
-    if (associatedVm) {
-      setVms((prev) => prev.map((v) => v.id === associatedVm.id ? { ...v, handover: (isComplete ? 'Prêt' : 'En cours') as VM['handover'] } : v));
+  const handleSubmitPublication = async (newPub: Omit<Publication, 'id' | 'date' | 'views' | 'likes'>) => {
+    try {
+      const response = await apiClient.createPublication({
+        nom: newPub.title,
+        description: newPub.desc,
+        lien: newPub.gitUrl,
+        photo: newPub.category,
+        user_id: studentInfo.id,
+        status: 'published',
+      });
+
+      const mapped = mapPublicationToUI(response);
+      setPublications((prev) => [mapped, ...prev]);
+      showToast('Publication soumise avec succès !');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la soumission de la publication.', 'danger');
     }
-    showToast('Publication soumise avec succès !');
+  };
+
+  const handleUpdateProfile = async (newInfo: any) => {
+    try {
+      const updated = await apiClient.updateStudent(studentInfo.id, {
+        username: newInfo.username,
+        level: newInfo.level,
+        departement: newInfo.department,
+      });
+      setStudentInfo({
+        id: updated.id,
+        username: updated.username,
+        email: updated.email,
+        matricule: updated.matricule,
+        level: updated.level,
+        department: updated.departement,
+      });
+      showToast('Profil mis à jour avec succès.');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la mise à jour du profil.', 'danger');
+    }
   };
 
   const handleLogout = () => {
     if (confirm('Voulez-vous vous déconnecter ?')) {
-      sessionStorage.removeItem('gandal_intro_seen');
+      apiClient.clearToken();
       router.push('/');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-slate-800">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-black uppercase tracking-wider text-slate-500">Chargement de votre espace...</p>
+        </div>
+      </div>
+    );
+  }
 
   const pendingRequests = requests.filter((r) => r.status === 'En attente').length;
   const activeVms = vms.filter((v) => v.status === 'Active').length;
@@ -163,19 +366,16 @@ export default function StudentDashboard() {
     { id: 'profile' as const, label: 'Mon Profil', icon: User },
   ];
 
-  const initials = studentInfo.username.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
+  const initials = studentInfo.username.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-slate-900 font-sans pb-24 overflow-x-hidden">
-
-      {/* ── ARRIÈRE-PLAN GÉOMÉTRIQUE ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
         <div className="absolute -top-[150px] -right-[150px] w-[500px] h-[500px] rounded-full bg-slate-200/50 border border-slate-300/60" />
         <div className="absolute top-[600px] -left-[150px] w-[450px] h-[450px] rounded-full bg-slate-200/50 border border-slate-300/40" />
         <div className="absolute bottom-[200px] right-[10%] w-[250px] h-[250px] rounded-full border-[3px] border-slate-200/80" />
       </div>
 
-      {/* ── TOAST ── */}
       {toast && (
         <div className={`fixed bottom-4 left-4 right-4 lg:left-auto lg:right-8 lg:bottom-8 lg:max-w-sm z-50 px-5 py-3.5 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 transition-all duration-300 ${toast.type === 'success' ? 'bg-emerald-500 text-white' : toast.type === 'danger' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'}`}>
           <span className="font-black text-sm uppercase shrink-0">{toast.type === 'success' ? '✓' : toast.type === 'danger' ? '⚠' : 'ℹ'}</span>
@@ -183,7 +383,6 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* ── HEADER ── */}
       <header className="relative w-full bg-white border-b border-slate-200 py-3 sm:py-5 px-4 lg:px-12 flex items-center justify-between gap-3" style={{ zIndex: 10 }}>
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/" className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0 hover:scale-105 transition-transform duration-200 block">
@@ -203,7 +402,6 @@ export default function StudentDashboard() {
         </Link>
       </header>
 
-      {/* ── MOBILE TAB BAR (visible < lg) ── */}
       <div className="lg:hidden sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm w-full max-w-full overflow-hidden">
         <div className="flex overflow-x-auto no-scrollbar px-4 py-2.5 gap-2 w-full">
           {TABS.map((tab) => {
@@ -236,10 +434,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* ── MAIN GRID ── */}
       <main className="relative max-w-7xl mx-auto px-4 lg:px-8 mt-6 lg:mt-12 grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-
-        {/* ── SIDEBAR (desktop only) ── */}
         <aside className="hidden lg:block lg:col-span-1 space-y-6">
           <div className="relative bg-white border border-slate-200 rounded-2xl p-6 pb-12 shadow-sm">
             <Screw3D className="top-2 left-2 rotate-12" />
@@ -247,7 +442,6 @@ export default function StudentDashboard() {
             <Screw3D className="bottom-2 left-2 -rotate-[60deg]" />
             <Screw3D className="bottom-2 right-2 rotate-[110deg]" />
 
-            {/* Avatar + infos */}
             <div className="text-center pt-4 pb-6 border-b border-slate-100 flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-black bg-emerald-50 flex items-center justify-center mb-4 select-none">
                 <span className="text-2xl font-black text-emerald-600">{initials}</span>
@@ -261,7 +455,6 @@ export default function StudentDashboard() {
               </span>
             </div>
 
-            {/* Navigation */}
             <nav className="flex flex-col gap-2 pt-6">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
@@ -288,7 +481,6 @@ export default function StudentDashboard() {
                 );
               })}
 
-              {/* Déconnexion */}
               <button
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3 border border-slate-200 bg-white text-red-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all duration-200 cursor-pointer shadow-sm mt-2"
@@ -299,7 +491,6 @@ export default function StudentDashboard() {
             </nav>
           </div>
 
-          {/* Info box établissement */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white space-y-3">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Établissement affilié</h4>
             <div className="flex items-center gap-3">
@@ -312,7 +503,6 @@ export default function StudentDashboard() {
           </div>
         </aside>
 
-        {/* ── CONTENU PRINCIPAL ── */}
         <section className="lg:col-span-3">
           {activeTab === 'overview' && (
             <OverviewTab
@@ -336,7 +526,7 @@ export default function StudentDashboard() {
           {activeTab === 'requests' && (
             <RequestsTab
               requests={requests}
-              vms={vms}
+              vms={vms.map(v => ({ id: v.id, name: v.name }))}
               onSubmitRequest={handleSubmitRequest}
             />
           )}
@@ -344,7 +534,7 @@ export default function StudentDashboard() {
           {activeTab === 'publications' && (
             <PublicationsTab
               publications={publications}
-              vms={vms}
+              vms={vms.map(v => ({ id: v.id, name: v.name }))}
               onSubmitPublication={handleSubmitPublication}
             />
           )}
@@ -358,7 +548,7 @@ export default function StudentDashboard() {
               studentInfo={studentInfo}
               vmsCount={activeVms}
               publicationsCount={publications.length}
-              onUpdateProfile={setStudentInfo}
+              onUpdateProfile={handleUpdateProfile}
             />
           )}
         </section>

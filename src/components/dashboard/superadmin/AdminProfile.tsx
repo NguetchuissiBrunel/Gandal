@@ -1,20 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Shield, School, Hash, User, Lock, Key, CheckCircle, Save } from 'lucide-react';
 import ScrewCard from '@/components/dashboard/superadmin/ScrewCard';
-
-const MOCK_ADMIN = {
-  nom: 'Super Administrateur GANDAL',
-  email: 'superadmin@gandal-enspy.cm',
-  role: 'Super Administrateur',
-  departement: 'Génie Informatique — ENSPY',
-  matricule: 'ADM-001',
-};
+import { apiClient } from '@/lib/apiClient';
 
 export default function AdminProfile() {
-  const [nom, setNom] = useState(MOCK_ADMIN.nom);
-  const [email, setEmail] = useState(MOCK_ADMIN.email);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [nom, setNom] = useState('');
+  const [email, setEmail] = useState('');
 
   // Changement de mot de passe
   const [changePassword, setChangePassword] = useState(false);
@@ -24,14 +19,55 @@ export default function AdminProfile() {
   const [showNew, setShowNew] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const me = await apiClient.getMe();
+        setProfile(me);
+        setNom(me.username);
+        setEmail(me.email);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    try {
+      const updateData: any = {
+        username: nom,
+      };
+      if (changePassword && newPassword) {
+        updateData.password = newPassword;
+      }
+      await apiClient.updateTeacher(profile.id, updateData);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const inputClass =
     'w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition bg-slate-50/50 hover:bg-slate-50 focus:bg-white';
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-bold text-slate-500 mt-4">Chargement du profil...</p>
+      </div>
+    );
+  }
+
+  const emailVal = profile?.email || 'admin@gandal-enspy.cm';
+  const roleVal = profile?.role || 'Super Administrateur';
+  const departmentVal = profile?.departement || 'Génie Informatique — ENSPY';
+  const matriculeVal = profile?.matricule || 'ADM-001';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -51,17 +87,17 @@ export default function AdminProfile() {
             SA
           </div>
           <div className="text-center sm:text-left space-y-1.5">
-            <p className="font-black text-slate-950 text-base leading-tight">{MOCK_ADMIN.nom}</p>
+            <p className="font-black text-slate-950 text-base leading-tight">{nom}</p>
           </div>
         </div>
 
         {/* Liste détaillée */}
         <div className="space-y-4">
           {[
-            { label: 'Adresse Email', value: MOCK_ADMIN.email, icon: Mail },
-            { label: 'Rôle Système', value: MOCK_ADMIN.role, icon: Shield },
-            { label: 'Département', value: MOCK_ADMIN.departement, icon: School },
-            { label: 'Matricule Unique', value: MOCK_ADMIN.matricule, icon: Hash },
+            { label: 'Adresse Email', value: emailVal, icon: Mail },
+            { label: 'Rôle Système', value: roleVal, icon: Shield },
+            { label: 'Département', value: departmentVal, icon: School },
+            { label: 'Matricule Unique', value: matriculeVal, icon: Hash },
           ].map((info, idx) => {
             const Icon = info.icon;
             return (
@@ -119,9 +155,9 @@ export default function AdminProfile() {
               </span>
               <input
                 type="email"
+                disabled
                 value={email}
-                onChange={e => setEmail(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} opacity-60 cursor-not-allowed`}
               />
             </div>
           </div>
@@ -141,7 +177,7 @@ export default function AdminProfile() {
             </label>
           </div>
 
-          {/* Section mot de passe conditionnelle avec transition */}
+          {/* Section mot de passe conditionnelle */}
           {changePassword && (
             <div className="space-y-5 bg-slate-50 border border-slate-100 rounded-2xl p-5 animate-slide-up duration-200">
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,8 +9,9 @@ import Screw3D from '@/components/Screw3D';
 import VMMonitoring from '@/components/dashboard/superadmin/VMMonitoring';
 import RequestsPanel from '@/components/dashboard/superadmin/RequestsPanel';
 import AdminProfile from '@/components/dashboard/superadmin/AdminProfile';
+import { apiClient } from '@/lib/apiClient';
 
-const INITIAL_PENDING = 4;
+const INITIAL_PENDING = 0;
 
 const TABS = [
   { id: 'profile' as const, label: 'Mon Profil', icon: User },
@@ -23,9 +24,33 @@ export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState<'vms' | 'requests' | 'profile'>('vms');
   const [pendingCount, setPendingCount] = useState(INITIAL_PENDING);
 
+  useEffect(() => {
+    const checkAuthAndFetch = async () => {
+      const token = apiClient.getToken();
+      if (!token) {
+        router.replace('/login');
+        return;
+      }
+      try {
+        const me = await apiClient.getMe();
+        if (me.type !== 'teacher' || (me.role?.toLowerCase() !== 'superadmin' && me.role?.toLowerCase() !== 'admin')) {
+          router.replace('/dashboard');
+          return;
+        }
+        const requestsData = await apiClient.getRequests();
+        const pending = (requestsData.items || []).filter((r: any) => r.status === 'pending').length;
+        setPendingCount(pending);
+      } catch (err) {
+        console.error(err);
+        router.replace('/login');
+      }
+    };
+    checkAuthAndFetch();
+  }, [router]);
+
   const handleLogout = () => {
     if (confirm('Voulez-vous vous déconnecter de la session superadmin ?')) {
-      sessionStorage.removeItem('gandal_intro_seen');
+      apiClient.clearToken();
       router.push('/');
     }
   };

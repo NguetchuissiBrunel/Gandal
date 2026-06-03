@@ -34,7 +34,7 @@ interface VM {
 
 interface VMsTabProps {
   vms: VM[];
-  onCreateVM: (vm: Omit<VM, 'id' | 'ip' | 'handover'>) => boolean | string;
+  onCreateVM: (vm: Omit<VM, 'id' | 'ip' | 'handover'>) => Promise<boolean | string> | boolean | string;
   onDeleteVM: (id: string) => void;
   onUpdateVMStatus: (id: string, newStatus: 'Active' | 'Arrêtée' | 'En cours') => void;
 }
@@ -68,7 +68,7 @@ export default function VMsTab({
     return acc;
   }, { cpu: 0, ram: 0, disk: 0 });
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -95,7 +95,7 @@ export default function VMsTab({
       return;
     }
 
-    const res = onCreateVM({
+    const res = await onCreateVM({
       name: formName,
       os: formOs,
       cpu: formCpu,

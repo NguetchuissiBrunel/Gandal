@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Screw3D from '@/components/Screw3D';
-import { User, Users, Server, PlusCircle, BookOpen, ArrowLeft, Globe } from 'lucide-react';
+import { User, Users, Server, PlusCircle, BookOpen, ArrowLeft, Globe, LogOut } from 'lucide-react';
 
 import type { TeacherProfile, AccountRequest, VmRequest, Publication, DeployedVm, ToastType } from './_modules/types';
 import ProfileTab from './_modules/ProfileTab';
@@ -14,22 +15,7 @@ import InstantiationTab from './_modules/InstantiationTab';
 import PublicationsTab from './_modules/PublicationsTab';
 import FloatingChatbot from '@/components/FloatingChatbot';
 import DNSTab from '@/components/dashboard/DNSTab';
-
-const INITIAL_ACCOUNT_REQUESTS: AccountRequest[] = [
-  { id: 'req-acc-1', nom: 'Jean Eboa', matricule: '22P250', organisation: 'ENSPY', email: 'jean.eboa@enspy-uy1.cm', justification: "Hébergement d'un projet de fin d'année en Systèmes Distribués (SMA).", statut: 'pending' },
-  { id: 'req-acc-2', nom: 'Marie Ngo Ndjock', matricule: '23P190', organisation: 'ENSPY', email: 'marie.ngo@enspy-uy1.cm', justification: 'Accès aux ressources de calcul du cluster pour les travaux pratiques de Routage Dynamique.', statut: 'pending' },
-  { id: 'req-acc-3', nom: 'Arthur Kamga', matricule: '21P088', organisation: 'ENSPY', email: 'arthur.kamga@enspy-uy1.cm', justification: "Déploiement expérimental d'un modèle d'apprentissage profond sur flux vidéo urbains.", statut: 'pending' }
-];
-
-const INITIAL_VM_REQUESTS: VmRequest[] = [
-  { id: 'req-vm-1', objet: 'Simulation Trafic Urbain SMA', contenu: 'Exécuter 6 agents logiciels autonomes conformes FIPA en environnement Java JADE avec monitoring Prometheus.', size_RAM: 8, size_ROM: 100, OS: 'Ubuntu Server 24.04 LTS', Demandeur: '22P250', statut: 'pending' },
-  { id: 'req-vm-2', objet: 'API Contrôle Intelligent de Trafic', contenu: "Hébergement d'un serveur d'inférence Flask/PyTorch exposé pour l'application mobile de supervision.", size_RAM: 16, size_ROM: 200, OS: 'Debian 12 Bookworm', Demandeur: '21P088', statut: 'pending' }
-];
-
-const INITIAL_PUBLICATIONS: Publication[] = [
-  { id: 'pub-1', nom: 'Portail de Supervision Multi-Agent', lien: 'https://github.com/enspy-gi27/gandal-sma', description: 'Supervise et orchestre en temps réel les ressources physiques et virtuelles de GANDAL grâce à une architecture de 6 agents logiciels autonomes conformes aux normes FIPA.', photo: '/default-photo.png', status: 'published' },
-  { id: 'pub-2', nom: 'Gestionnaire de Bibliothèque ENSPY', lien: 'https://github.com/enspy-gi27/enspy-library', description: "Plateforme web centralisée facilitant la gestion, la recherche et l'emprunt d'ouvrages académiques et de mémoires de recherche pour les étudiants et enseignants de l'école.", photo: '/default-photo.png', status: 'published' }
-];
+import { apiClient } from '@/lib/apiClient';
 
 const TABS = [
   { id: 'profile', label: 'Mon Profil', icon: User },
@@ -42,19 +28,65 @@ const TABS = [
 
 type TabId = typeof TABS[number]['id'];
 
-export default function TeacherDashboard() {
-  const [activeTab, setActiveTab] = useState<TabId>('profile');
+const mapAccountRequest = (req: any): AccountRequest => ({
+  id: req.id.toString(),
+  nom: req.nom || req.object || 'Étudiant',
+  email: req.email || 'etudiant@enspy-uy1.cm',
+  matricule: req.matricule || 'N/A',
+  organisation: req.organisation || 'ENSPY',
+  justification: req.justification || req.content || 'Pas de justification.',
+  statut: req.status === 'validated' ? 'validated' : req.status === 'rejected' ? 'rejected' : 'pending',
+});
 
-  const [profile, setProfile] = useState<TeacherProfile>({
+const mapVmRequest = (req: any): VmRequest => ({
+  id: req.id.toString(),
+  objet: req.object || 'Simulation',
+  contenu: req.content || 'Détails non fournis.',
+  size_RAM: req.size_ram || 4,
+  size_ROM: req.size_rom || 40,
+  OS: req.os || 'Ubuntu Server',
+  Demandeur: req.student_id ? `Étudiant #${req.student_id}` : 'Étudiant',
+  statut: req.status === 'validated' ? 'validated' : req.status === 'rejected' ? 'rejected' : 'pending',
+});
+
+const mapPublication = (pub: any): Publication => ({
+  id: pub.id.toString(),
+  nom: pub.nom,
+  lien: pub.lien || '',
+  description: pub.description || '',
+  photo: pub.photo || '/default-photo.png',
+  status: pub.status || 'published',
+});
+
+const mapDeployedVM = (vm: any): DeployedVm => ({
+  id: vm.id.toString(),
+  nom: vm.node || `vm-${vm.id}`,
+  iso: vm.iso || 'Ubuntu',
+  ram: `${vm.size_ram} Go`,
+  rom: `${vm.size_rom} Go`,
+  cpu: `${vm.n_cpu} Cores`,
+  mode: vm.status === 'up' ? 'Active' : 'Arrêtée',
+  ip: vm.ip_address || '192.168.10.100',
+  lien: `ssh student@${vm.ip_address || '0.0.0.0'}`,
+  createdAt: vm.date_stop_at || 'Récemment',
+});
+
+export default function TeacherDashboard() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabId>('profile');
+  const [loading, setLoading] = useState(true);
+
+  const [profile, setProfile] = useState<any>({
+    id: 0,
     username: 'bbatchakui',
     email: 'bernabe.batchakui@enspy-uy1.cm',
     password: '',
     role: 'Directeur de Projet'
   });
 
-  const [accountRequests, setAccountRequests] = useState(INITIAL_ACCOUNT_REQUESTS);
-  const [vmRequests, setVmRequests] = useState(INITIAL_VM_REQUESTS);
-  const [publications, setPublications] = useState(INITIAL_PUBLICATIONS);
+  const [accountRequests, setAccountRequests] = useState<AccountRequest[]>([]);
+  const [vmRequests, setVmRequests] = useState<VmRequest[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
   const [deployedVms, setDeployedVms] = useState<DeployedVm[]>([]);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
@@ -62,6 +94,172 @@ export default function TeacherDashboard() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
+
+  useEffect(() => {
+    const loadTeacherData = async () => {
+      try {
+        const token = apiClient.getToken();
+        if (!token) {
+          router.replace('/login');
+          return;
+        }
+
+        const me = await apiClient.getMe();
+        if (me.type !== 'teacher') {
+          router.replace('/dashboard');
+          return;
+        }
+
+        setProfile({
+          id: me.id,
+          username: me.username,
+          email: me.email,
+          role: me.role || 'Enseignant',
+        });
+
+        const [requestsData, publicationsData, vmsData] = await Promise.all([
+          apiClient.getRequests().catch(() => ({ items: [] })),
+          apiClient.getPublications().catch(() => ({ items: [] })),
+          apiClient.getVms().catch(() => ({ items: [] })),
+        ]);
+
+        const allRequests = requestsData.items || [];
+        setAccountRequests(allRequests.filter((r: any) => r.type === 'r_account' && r.status === 'pending').map(mapAccountRequest));
+        setVmRequests(allRequests.filter((r: any) => (r.type === 'r_create_vm' || r.type === 'r_delete_vm') && r.status === 'pending').map(mapVmRequest));
+        setPublications((publicationsData.items || []).map(mapPublication));
+        setDeployedVms((vmsData.items || []).map(mapDeployedVM));
+      } catch (err) {
+        console.error('Error loading teacher dashboard data:', err);
+        showToast('Erreur lors du chargement des données.', 'danger');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTeacherData();
+  }, [router]);
+
+  const handleApproveAccount = async (id: string, name: string) => {
+    try {
+      await apiClient.approveRequest(parseInt(id), '');
+      setAccountRequests(p => p.filter(r => r.id !== id));
+      showToast(`Compte de ${name} validé !`);
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la validation du compte.', 'danger');
+    }
+  };
+
+  const handleRejectAccount = async (id: string, name: string) => {
+    try {
+      await apiClient.rejectRequest(parseInt(id));
+      setAccountRequests(p => p.filter(r => r.id !== id));
+      showToast(`Compte de ${name} rejeté.`, 'danger');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors du rejet du compte.', 'danger');
+    }
+  };
+
+  const handleApproveVM = async (id: string, sName: string, pName: string) => {
+    try {
+      await apiClient.approveRequest(parseInt(id), '');
+      setVmRequests(p => p.filter(r => r.id !== id));
+      showToast(`Création VM validée pour "${pName}" !`);
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la validation de la VM.', 'danger');
+    }
+  };
+
+  const handleRejectVM = async (id: string, sName: string) => {
+    try {
+      await apiClient.rejectRequest(parseInt(id));
+      setVmRequests(p => p.filter(r => r.id !== id));
+      showToast(`Demande de VM de ${sName} rejetée.`, 'danger');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors du rejet de la VM.', 'danger');
+    }
+  };
+
+  const handleCreateVmDirectly = async (vm: any) => {
+    try {
+      const response = await apiClient.createVm({
+        user_id: profile.id,
+        size_rom: parseInt(vm.rom),
+        size_ram: parseInt(vm.ram),
+        n_cpu: parseInt(vm.cpu),
+        status: 'stopped',
+        iso: vm.iso,
+        node: vm.nom,
+      });
+      const mapped = mapDeployedVM(response);
+      setDeployedVms((prev) => [mapped, ...prev]);
+      showToast('Nouvelle instance VM créée avec succès !');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la création de la VM.', 'danger');
+    }
+  };
+
+  const handleDeleteVmDirectly = async (id: string) => {
+    try {
+      await apiClient.deleteVm(parseInt(id));
+      setDeployedVms((prev) => prev.filter((v) => v.id !== id));
+      showToast('Instance VM supprimée.', 'danger');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la suppression de la VM.', 'danger');
+    }
+  };
+
+  const handleCreatePublication = async (newPub: any) => {
+    try {
+      const response = await apiClient.createPublication({
+        nom: newPub.nom,
+        description: newPub.description,
+        lien: newPub.lien,
+        photo: newPub.photo || '/default-photo.png',
+        user_id: profile.id,
+        status: newPub.status || 'published',
+      });
+      setPublications((prev) => [mapPublication(response), ...prev]);
+      showToast('Nouvelle publication enregistrée avec succès !');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la création de la publication.', 'danger');
+    }
+  };
+
+  const handleUpdateProfile = async (newProfile: any) => {
+    try {
+      const updated = await apiClient.updateTeacher(profile.id, {
+        username: newProfile.username,
+        role: newProfile.role,
+      });
+      setProfile({
+        id: updated.id,
+        username: updated.username,
+        email: updated.email,
+        role: updated.role,
+      });
+      showToast('Profil mis à jour avec succès.');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la mise à jour du profil.', 'danger');
+    }
+  };
+
+  const handleLogout = () => {
+    if (confirm('Voulez-vous vous déconnecter ?')) {
+      apiClient.clearToken();
+      router.push('/');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-slate-800">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-black uppercase tracking-wider text-slate-500">Chargement de l'espace enseignant...</p>
+        </div>
+      </div>
+    );
+  }
 
   const teacherFullName = profile.username;
 
@@ -72,15 +270,12 @@ export default function TeacherDashboard() {
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-slate-900 font-sans pb-24 overflow-x-hidden">
-
-      {/* ── ARRIÈRE-PLAN ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
         <div className="absolute -top-[150px] -right-[150px] w-[500px] h-[500px] rounded-full bg-slate-200/50 border border-slate-300/60" />
         <div className="absolute top-[600px] -left-[150px] w-[450px] h-[450px] rounded-full bg-slate-200/50 border border-slate-300/40" />
         <div className="absolute bottom-[200px] right-[10%] w-[250px] h-[250px] rounded-full border-[3px] border-slate-200/80" />
       </div>
 
-      {/* ── TOAST ── */}
       {toast && (
         <div className={`fixed bottom-4 left-4 right-4 lg:left-auto lg:right-8 lg:bottom-8 lg:max-w-sm z-50 px-5 py-3.5 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 transition-all duration-300 ${toast.type === 'success' ? 'bg-emerald-500 text-white' : toast.type === 'danger' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'}`}>
           <span className="font-black text-sm uppercase shrink-0">{toast.type === 'success' ? '✓' : toast.type === 'danger' ? '⚠' : 'ℹ'}</span>
@@ -88,7 +283,6 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* ── HEADER ── */}
       <header className="relative w-full bg-white border-b border-slate-200 py-3 sm:py-5 px-4 lg:px-12 flex items-center justify-between gap-3" style={{ zIndex: 10 }}>
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/" className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0 hover:scale-105 transition-transform duration-200 block">
@@ -108,7 +302,6 @@ export default function TeacherDashboard() {
         </Link>
       </header>
 
-      {/* ── MOBILE TAB BAR (visible < lg) ── */}
       <div className="lg:hidden sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm w-full max-w-full overflow-hidden">
         <div className="flex overflow-x-auto no-scrollbar px-4 py-2.5 gap-2 w-full">
           {TABS.map((tab) => {
@@ -134,13 +327,17 @@ export default function TeacherDashboard() {
               </button>
             );
           })}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all border border-slate-200 bg-white text-red-500 hover:bg-red-50 hover:border-red-200"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Quitter
+          </button>
         </div>
       </div>
 
-      {/* ── MAIN GRID ── */}
       <main className="relative max-w-7xl mx-auto px-4 lg:px-8 mt-6 lg:mt-12 grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-
-        {/* ── SIDEBAR (desktop only) ── */}
         <aside className="hidden lg:block lg:col-span-1 space-y-6">
           <div className="relative bg-white border border-slate-200 rounded-2xl p-6 pb-12 shadow-sm transition-shadow duration-300">
             <Screw3D className="top-2 left-2 rotate-12" />
@@ -148,7 +345,6 @@ export default function TeacherDashboard() {
             <Screw3D className="bottom-2 left-2 -rotate-[60deg]" />
             <Screw3D className="bottom-2 right-2 rotate-[110deg]" />
 
-            {/* Profile Summary */}
             <div className="text-center pt-4 pb-6 border-b border-slate-100 flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-black bg-blue-50 flex items-center justify-center mb-4 select-none">
                 <span className="text-2xl font-black text-blue-600">{profile.username ? profile.username.substring(0, 2).toUpperCase() : 'TE'}</span>
@@ -157,7 +353,6 @@ export default function TeacherDashboard() {
               <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">{profile.role}</p>
             </div>
 
-            {/* Tab Navigation */}
             <nav className="flex flex-col gap-2 pt-6">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
@@ -176,6 +371,14 @@ export default function TeacherDashboard() {
                   </button>
                 );
               })}
+
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3 border border-slate-200 bg-white text-red-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all duration-200 cursor-pointer shadow-sm mt-2"
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+                Déconnexion
+              </button>
             </nav>
           </div>
 
@@ -189,23 +392,22 @@ export default function TeacherDashboard() {
           </div>
         </aside>
 
-        {/* ── CONTENT ZONE ── */}
         <section className="col-span-1 lg:col-span-3">
           {activeTab === 'profile' && (
-            <ProfileTab profile={profile} onSave={setProfile} showToast={showToast} pendingCount={accountRequests.length + vmRequests.length} />
+            <ProfileTab profile={profile} onSave={handleUpdateProfile} showToast={showToast} pendingCount={accountRequests.length + vmRequests.length} />
           )}
           {activeTab === 'inscriptions' && (
             <InscriptionsTab
               requests={accountRequests}
-              onApprove={(id, name) => { setAccountRequests(p => p.filter(r => r.id !== id)); showToast(`Compte de ${name} validé !`); }}
-              onReject={(id, name) => { setAccountRequests(p => p.filter(r => r.id !== id)); showToast(`Compte de ${name} rejeté.`, 'danger'); }}
+              onApprove={handleApproveAccount}
+              onReject={handleRejectAccount}
             />
           )}
           {activeTab === 'vms' && (
             <VmsTab
               requests={vmRequests}
-              onApprove={(id, sName, pName) => { setVmRequests(p => p.filter(r => r.id !== id)); showToast(`Création VM validée pour "${pName}" !`); }}
-              onReject={(id, sName) => { setVmRequests(p => p.filter(r => r.id !== id)); showToast(`Demande de VM de ${sName} rejetée.`, 'danger'); }}
+              onApprove={handleApproveVM}
+              onReject={handleRejectVM}
             />
           )}
           {activeTab === 'instantiation' && (
@@ -213,18 +415,15 @@ export default function TeacherDashboard() {
               showToast={showToast}
               teacherName={teacherFullName}
               deployedVms={deployedVms}
-              onVmCreated={(vm) => setDeployedVms((prev) => [vm, ...prev])}
-              onDeleteVm={(id) => setDeployedVms((prev) => prev.filter((v) => v.id !== id))}
+              onVmCreated={handleCreateVmDirectly}
+              onDeleteVm={handleDeleteVmDirectly}
             />
           )}
           {activeTab === 'publications' && (
             <PublicationsTab
               publications={publications}
               teacherName={teacherFullName}
-              onCreatePublication={(newPub) => {
-                setPublications((prev) => [{ id: `pub-${prev.length + 1}`, ...newPub }, ...prev]);
-                showToast('Nouvelle publication enregistrée avec succès !');
-              }}
+              onCreatePublication={handleCreatePublication}
             />
           )}
           {activeTab === 'dns' && (
@@ -233,7 +432,6 @@ export default function TeacherDashboard() {
         </section>
       </main>
 
-      {/* ── CHATBOT FLOTTANT ── */}
       <FloatingChatbot />
     </div>
   );

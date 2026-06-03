@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Server, Cpu, HardDrive, Trash2, PauseCircle, PlayCircle } from 'lucide-react';
 import ScrewCard, { Screw } from '@/components/dashboard/superadmin/ScrewCard';
+import { apiClient } from '@/lib/apiClient';
 
 interface VM {
   id: string;
@@ -20,99 +21,6 @@ interface VM {
   ssh_public_key: string;
 }
 
-const INITIAL_VMS: VM[] = [
-  {
-    id: 'vm-001',
-    id_proxmox: 'proxmox-node1-001',
-    nom: 'Portail SMA',
-    size_rom: '120 Go',
-    size_ram: '8 Go',
-    iso: 'ubuntu-22.04-live-server-amd64.iso',
-    iso_image: 'Ubuntu 22.04 LTS',
-    ip_address: '192.168.10.11',
-    mode: 'KVM',
-    n_cpu: 4,
-    status: 'active',
-    date_stop_at: null,
-    ssh_public_key: 'ssh-rsa AAAA...node1',
-  },
-  {
-    id: 'vm-002',
-    id_proxmox: 'proxmox-node1-002',
-    nom: 'Bibliothèque ENSPY',
-    size_rom: '80 Go',
-    size_ram: '4 Go',
-    iso: 'debian-12-amd64-netinst.iso',
-    iso_image: 'Debian 12',
-    ip_address: '192.168.10.12',
-    mode: 'KVM',
-    n_cpu: 2,
-    status: 'active',
-    date_stop_at: null,
-    ssh_public_key: 'ssh-rsa AAAA...node2',
-  },
-  {
-    id: 'vm-003',
-    id_proxmox: 'proxmox-node2-001',
-    nom: 'Contrôle Trafic IA',
-    size_rom: '200 Go',
-    size_ram: '16 Go',
-    iso: 'ubuntu-20.04-live-server-amd64.iso',
-    iso_image: 'Ubuntu 20.04 LTS',
-    ip_address: '192.168.10.13',
-    mode: 'KVM',
-    n_cpu: 8,
-    status: 'active',
-    date_stop_at: null,
-    ssh_public_key: 'ssh-rsa AAAA...node3',
-  },
-  {
-    id: 'vm-004',
-    id_proxmox: 'proxmox-node2-002',
-    nom: 'Serveur GitLab',
-    size_rom: '500 Go',
-    size_ram: '8 Go',
-    iso: 'centos-9-x86_64-dvd.iso',
-    iso_image: 'CentOS 9',
-    ip_address: '192.168.10.14',
-    mode: 'KVM',
-    n_cpu: 4,
-    status: 'suspendue',
-    date_stop_at: '2026-05-24',
-    ssh_public_key: 'ssh-rsa AAAA...node4',
-  },
-  {
-    id: 'vm-005',
-    id_proxmox: 'proxmox-node3-001',
-    nom: 'Base de données centrale',
-    size_rom: '1 To',
-    size_ram: '32 Go',
-    iso: 'ubuntu-22.04-live-server-amd64.iso',
-    iso_image: 'Ubuntu 22.04 LTS',
-    ip_address: '192.168.10.15',
-    mode: 'KVM',
-    n_cpu: 8,
-    status: 'arrêtée',
-    date_stop_at: '2026-05-20',
-    ssh_public_key: 'ssh-rsa AAAA...node5',
-  },
-  {
-    id: 'vm-006',
-    id_proxmox: 'proxmox-node3-002',
-    nom: 'Monitoring Grafana',
-    size_rom: '40 Go',
-    size_ram: '2 Go',
-    iso: 'alpine-virt-3.19.0-x86_64.iso',
-    iso_image: 'Alpine Linux 3.19',
-    ip_address: '192.168.10.16',
-    mode: 'LXC',
-    n_cpu: 2,
-    status: 'active',
-    date_stop_at: null,
-    ssh_public_key: 'ssh-rsa AAAA...node6',
-  },
-];
-
 const STATUT_BADGE: Record<VM['status'], string> = {
   active: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   suspendue: 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -126,29 +34,84 @@ const RESOURCE_BARS = [
 ];
 
 export default function VMMonitoring() {
-  const [vms, setVms] = useState<VM[]>(INITIAL_VMS);
+  const [vms, setVms] = useState<VM[]>([]);
+  const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const fetchVms = async () => {
+    try {
+      const vmsData = await apiClient.getVms();
+      const mapped = (vmsData.items || []).map((vm: any) => {
+        let status: VM['status'] = 'arrêtée';
+        if (vm.status === 'up') status = 'active';
+        else if (vm.status === 'waiting') status = 'suspendue';
+
+        return {
+          id: vm.id.toString(),
+          id_proxmox: `proxmox-node-${vm.id}`,
+          nom: vm.node || `vm-${vm.id}`,
+          size_rom: `${vm.size_rom} Go`,
+          size_ram: `${vm.size_ram} Go`,
+          iso: vm.iso || 'ubuntu-22.04',
+          iso_image: vm.iso_image || 'Ubuntu Server',
+          ip_address: vm.ip_address || '0.0.0.0',
+          mode: 'KVM',
+          n_cpu: vm.n_cpu,
+          status,
+          date_stop_at: vm.date_stop_at || null,
+          ssh_public_key: vm.ssh_public_key || 'N/A',
+        };
+      });
+      setVms(mapped);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVms();
+  }, []);
 
   const activeCount = vms.filter(v => v.status === 'active').length;
 
-  const handleToggleSuspend = (id: string) => {
-    setVms(prev =>
-      prev.map(v => {
-        if (v.id !== id) return v;
-        return { ...v, status: v.status === 'active' ? 'suspendue' : 'active' };
-      })
-    );
+  const handleToggleSuspend = async (id: string) => {
+    const vm = vms.find(v => v.id === id);
+    if (!vm) return;
+    try {
+      if (vm.status === 'active') {
+        await apiClient.pauseVm(parseInt(id));
+      } else {
+        await apiClient.startVm(parseInt(id));
+      }
+      fetchVms();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setVms(prev => prev.filter(v => v.id !== id));
-    setConfirmDelete(null);
+  const handleDelete = async (id: string) => {
+    try {
+      await apiClient.deleteVm(parseInt(id));
+      setVms(prev => prev.filter(v => v.id !== id));
+      setConfirmDelete(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-bold text-slate-500 mt-4">Chargement des machines virtuelles...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-
-      {/* ── Cartes métriques ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
@@ -188,7 +151,6 @@ export default function VMMonitoring() {
         </div>
       </div>
 
-      {/* ── Barres de ressources ── */}
       <ScrewCard className="p-6">
         <h2 className="text-base font-black text-slate-900 mb-6 pt-2 px-2">Utilisation des Ressources</h2>
         <div className="space-y-5">
@@ -209,7 +171,6 @@ export default function VMMonitoring() {
         </div>
       </ScrewCard>
 
-      {/* ── Liste des VMs ── */}
       <div>
         <div className="flex items-center gap-3 mb-5">
           <h2 className="text-base font-black text-slate-900">Machines Virtuelles</h2>
@@ -229,7 +190,6 @@ export default function VMMonitoring() {
               <Screw className="bottom-1.5 left-1.5" />
               <Screw className="bottom-1.5 right-1.5" />
 
-              {/* Header */}
               <div className="flex items-center justify-between px-5 pt-8 pb-4 border-b border-slate-100">
                 <p className="font-bold text-slate-900 text-sm truncate pr-2">{vm.nom}</p>
                 <span className={`text-xs font-bold tracking-wider uppercase rounded-full px-3 py-1 shrink-0 ${STATUT_BADGE[vm.status]}`}>
@@ -237,7 +197,6 @@ export default function VMMonitoring() {
                 </span>
               </div>
 
-              {/* Infos grid 2×4 */}
               <div className="p-5 grid grid-cols-2 gap-3 flex-grow">
                 {[
                   { label: 'OS / Image', value: vm.iso_image },
@@ -256,7 +215,6 @@ export default function VMMonitoring() {
                 ))}
               </div>
 
-              {/* Clé SSH publique */}
               <div className="px-5 pb-4 border-b border-slate-100">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Clé SSH publique</p>
                 <p className="font-mono text-[10px] text-slate-500 truncate">
@@ -266,7 +224,6 @@ export default function VMMonitoring() {
                 </p>
               </div>
 
-              {/* Actions */}
               <div className="p-4 flex gap-2">
                 {confirmDelete === vm.id ? (
                   <div className="flex items-center gap-2 w-full">

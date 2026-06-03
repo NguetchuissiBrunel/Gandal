@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, MessageSquare, Send } from 'lucide-react';
 import ScrewCard from '@/components/dashboard/superadmin/ScrewCard';
+import { apiClient } from '@/lib/apiClient';
 
 interface RequeteVM {
   id: string;
@@ -37,115 +38,6 @@ interface AutreRequete {
   reponse?: string;
 }
 
-const INITIAL_CREATION: RequeteVM[] = [
-  {
-    id: 'r-001',
-    etudiant: 'Jean Eboa',
-    matricule: '22P150',
-    objet: "Déploiement d'une API REST Python pour le projet de fin d'étude.",
-    contenu: "Besoin d'un environnement isolé pour héberger une API REST Python Flask avec PostgreSQL.",
-    size_rom: '50 Go',
-    size_ram: '8 Go',
-    os: 'Ubuntu 22.04 LTS',
-    date: '2026-05-20',
-    statut: 'en attente',
-  },
-  {
-    id: 'r-002',
-    etudiant: 'Marie Nguele',
-    matricule: '22P200',
-    objet: "Serveur Node.js pour application web de gestion des absences.",
-    contenu: "Application Express.js avec MongoDB pour la gestion des présences en cours.",
-    size_rom: '30 Go',
-    size_ram: '4 Go',
-    os: 'Debian 12',
-    date: '2026-05-22',
-    statut: 'en attente',
-  },
-  {
-    id: 'r-003',
-    etudiant: 'Paul Ndongo',
-    matricule: '21P175',
-    objet: "Environnement ML pour entraînement de modèles de vision artificielle.",
-    contenu: "Nécessite GPU passthrough et bibliothèques CUDA pour PyTorch/TensorFlow.",
-    size_rom: '100 Go',
-    size_ram: '16 Go',
-    os: 'Ubuntu 20.04 LTS',
-    date: '2026-05-18',
-    statut: 'acceptée',
-  },
-  {
-    id: 'r-004',
-    etudiant: 'Alice Balla',
-    matricule: '22P230',
-    objet: "Hébergement d'un site vitrine pour le club entrepreneuriat ENSPY.",
-    contenu: "Site WordPress avec base de données MySQL et certificat SSL auto-signé.",
-    size_rom: '20 Go',
-    size_ram: '2 Go',
-    os: 'Debian 12',
-    date: '2026-05-15',
-    statut: 'rejetée',
-  },
-];
-
-const INITIAL_SUPPRESSION: RequeteSuppression[] = [
-  {
-    id: 's-001',
-    etudiant: 'Kevin Samba',
-    matricule: '21P100',
-    vm: 'vm-dev-samba-01',
-    raison: "Projet terminé et soutenu. La VM n'est plus nécessaire.",
-    date: '2026-05-23',
-    statut: 'en attente',
-  },
-  {
-    id: 's-002',
-    etudiant: 'Fatima Bello',
-    matricule: '20P088',
-    vm: 'vm-test-bello-03',
-    raison: "Reconfiguration complète de l'environnement de test nécessaire.",
-    date: '2026-05-24',
-    statut: 'en attente',
-  },
-  {
-    id: 's-003',
-    etudiant: 'Marc Essomba',
-    matricule: '22P312',
-    vm: 'vm-prod-essomba-01',
-    raison: 'Migration vers une nouvelle VM plus puissante.',
-    date: '2026-05-19',
-    statut: 'acceptée',
-  },
-];
-
-const INITIAL_AUTRES: AutreRequete[] = [
-  {
-    id: 'a-001',
-    etudiant: 'Laura Kengne',
-    matricule: '22P445',
-    type: 'Augmentation de ressources',
-    message: "Bonjour, pourrait-il être possible d'augmenter la RAM de ma VM de 4 Go à 8 Go ? Mon projet d'analyse de données consomme trop de mémoire.",
-    date: '2026-05-25',
-  },
-  {
-    id: 'a-002',
-    etudiant: 'Bruno Mfou',
-    matricule: '21P298',
-    type: 'Problème réseau',
-    message: "Ma VM ne peut plus accéder à internet depuis hier matin. Le ping vers 8.8.8.8 est injoignable. Merci de vérifier la configuration réseau.",
-    date: '2026-05-26',
-    reponse: "Problème identifié côté routeur. Un redémarrage du service réseau est en cours.",
-  },
-  {
-    id: 'a-003',
-    etudiant: 'Claire Abomo',
-    matricule: '22P501',
-    type: 'Question sur Proxmox',
-    message: "Comment puis-je créer un snapshot de ma VM avant une mise à jour majeure ? Y a-t-il une procédure standard ?",
-    date: '2026-05-27',
-  },
-];
-
 const STATUT_BADGE: Record<'en attente' | 'acceptée' | 'rejetée', string> = {
   'en attente': 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   acceptée: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
@@ -156,27 +48,119 @@ type SubTab = 'création' | 'suppression' | 'autres';
 
 export default function RequestsPanel() {
   const [activeTab, setActiveTab] = useState<SubTab>('création');
-  const [creation, setCreation] = useState<RequeteVM[]>(INITIAL_CREATION);
-  const [suppression, setSuppression] = useState<RequeteSuppression[]>(INITIAL_SUPPRESSION);
-  const [autres, setAutres] = useState<AutreRequete[]>(INITIAL_AUTRES);
+  const [loading, setLoading] = useState(true);
+  const [creation, setCreation] = useState<RequeteVM[]>([]);
+  const [suppression, setSuppression] = useState<RequeteSuppression[]>([]);
+  const [autres, setAutres] = useState<AutreRequete[]>([]);
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
   const [replyOpen, setReplyOpen] = useState<Record<string, boolean>>({});
+
+  const fetchRequests = async () => {
+    try {
+      const response = await apiClient.getRequests();
+      const all = response.items || [];
+
+      const cr = all.filter((r: any) => r.type === 'r_create_vm').map((r: any) => {
+        let statut: RequeteVM['statut'] = 'en attente';
+        if (r.status === 'validated') statut = 'acceptée';
+        else if (r.status === 'rejected') statut = 'rejetée';
+
+        return {
+          id: r.id.toString(),
+          etudiant: `Étudiant #${r.student_id}`,
+          matricule: 'Matricule',
+          objet: r.object || 'Création de VM',
+          contenu: r.content || 'Demande de création de ressource.',
+          size_rom: `${r.size_rom} Go`,
+          size_ram: `${r.size_ram} Go`,
+          os: r.os || 'Ubuntu Server',
+          date: 'Récemment',
+          statut,
+        };
+      });
+
+      const sup = all.filter((r: any) => r.type === 'r_delete_vm').map((r: any) => {
+        let statut: RequeteSuppression['statut'] = 'en attente';
+        if (r.status === 'validated') statut = 'acceptée';
+        else if (r.status === 'rejected') statut = 'rejetée';
+
+        return {
+          id: r.id.toString(),
+          etudiant: `Étudiant #${r.student_id}`,
+          matricule: 'Matricule',
+          vm: `VM ID: ${r.vm_id}`,
+          raison: r.content || 'Pas de justification fournie.',
+          date: 'Récemment',
+          statut,
+        };
+      });
+
+      const aut = all.filter((r: any) => r.type === 'r_account').map((r: any) => {
+        return {
+          id: r.id.toString(),
+          etudiant: r.nom || `Étudiant #${r.student_id}`,
+          matricule: r.matricule || 'N/A',
+          type: 'Création de Compte',
+          message: r.justification || r.content || 'Pas de détails.',
+          date: 'Récemment',
+          reponse: r.status === 'validated' ? 'Acceptée' : r.status === 'rejected' ? 'Rejetée' : undefined,
+        };
+      });
+
+      setCreation(cr);
+      setSuppression(sup);
+      setAutres(aut);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   const pendingCreation = creation.filter(r => r.statut === 'en attente').length;
   const pendingSuppression = suppression.filter(r => r.statut === 'en attente').length;
 
-  const handleCreation = (id: string, action: 'acceptée' | 'rejetée') =>
-    setCreation(prev => prev.map(r => r.id === id ? { ...r, statut: action } : r));
+  const handleCreation = async (id: string, action: 'acceptée' | 'rejetée') => {
+    try {
+      if (action === 'acceptée') {
+        await apiClient.approveRequest(parseInt(id), 'Validé par Super Admin');
+      } else {
+        await apiClient.rejectRequest(parseInt(id));
+      }
+      fetchRequests();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-  const handleSuppression = (id: string, action: 'acceptée' | 'rejetée') =>
-    setSuppression(prev => prev.map(r => r.id === id ? { ...r, statut: action } : r));
+  const handleSuppression = async (id: string, action: 'acceptée' | 'rejetée') => {
+    try {
+      if (action === 'acceptée') {
+        await apiClient.approveRequest(parseInt(id), 'Suppression validée par Super Admin');
+      } else {
+        await apiClient.rejectRequest(parseInt(id));
+      }
+      fetchRequests();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-  const handleReply = (id: string) => {
+  const handleReply = async (id: string) => {
     const text = replyDraft[id]?.trim();
     if (!text) return;
-    setAutres(prev => prev.map(r => r.id === id ? { ...r, reponse: text } : r));
-    setReplyDraft(prev => ({ ...prev, [id]: '' }));
-    setReplyOpen(prev => ({ ...prev, [id]: false }));
+    try {
+      await apiClient.approveRequest(parseInt(id), text);
+      fetchRequests();
+      setReplyDraft(prev => ({ ...prev, [id]: '' }));
+      setReplyOpen(prev => ({ ...prev, [id]: false }));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const SUB_TABS: { key: SubTab; label: string; badge: number }[] = [
@@ -185,10 +169,17 @@ export default function RequestsPanel() {
     { key: 'autres', label: 'Autres', badge: 0 },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-bold text-slate-500 mt-4">Chargement des requêtes...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-
-      {/* ── Sous-tabs (Design Pilule Premium Indigo) ── */}
       <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50 max-w-xl">
         {SUB_TABS.map(tab => (
           <button
@@ -210,12 +201,10 @@ export default function RequestsPanel() {
         ))}
       </div>
 
-      {/* ── Création de VM ── */}
       {activeTab === 'création' && (
         <div className="space-y-4">
           {creation.map(req => (
             <ScrewCard key={req.id} className="p-6">
-              {/* En-tête */}
               <div className="flex items-start justify-between gap-4 mb-4 pt-2">
                 <div>
                   <p className="font-bold text-slate-900">{req.etudiant}</p>
@@ -226,7 +215,6 @@ export default function RequestsPanel() {
                 </span>
               </div>
 
-              {/* Objet + contenu */}
               <div className="space-y-3 mb-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Objet</p>
@@ -238,7 +226,6 @@ export default function RequestsPanel() {
                 </div>
               </div>
 
-              {/* Ressources demandées — 3 colonnes */}
               <div className="mb-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Ressources demandées</p>
                 <div className="grid grid-cols-3 gap-2">
@@ -255,7 +242,6 @@ export default function RequestsPanel() {
                 </div>
               </div>
 
-              {/* Actions */}
               {req.statut === 'en attente' && (
                 <div className="flex gap-2 pt-4 border-t border-slate-100">
                   <button
@@ -277,7 +263,6 @@ export default function RequestsPanel() {
         </div>
       )}
 
-      {/* ── Suppression de VM ── */}
       {activeTab === 'suppression' && (
         <div className="space-y-4">
           {suppression.map(req => (
@@ -324,7 +309,6 @@ export default function RequestsPanel() {
         </div>
       )}
 
-      {/* ── Autres ── */}
       {activeTab === 'autres' && (
         <div className="space-y-4">
           {autres.map(req => (

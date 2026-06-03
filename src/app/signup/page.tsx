@@ -18,6 +18,7 @@ import {
   XCircle,
   Loader2,
 } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
 
 /* ── Vis métallique 3D ── */
 const Screw = ({ className }: { className: string }) => (
@@ -111,7 +112,7 @@ export default function SignupPage() {
   };
 
   /* ── Soumission finale ── */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!email || !password || !confirmPassword) {
@@ -127,7 +128,21 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSuccess(true); }, 1800);
+    try {
+      await apiClient.signupStudent({
+        username,
+        email,
+        password,
+        matricule,
+        level,
+        departement: department,
+      });
+      setLoading(false);
+      setSuccess(true);
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'Une erreur est survenue lors de la création du compte.');
+    }
   };
 
   return (

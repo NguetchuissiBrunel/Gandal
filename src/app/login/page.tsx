@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
 
 const Screw = ({ className }: { className: string }) => (
   <div className={`absolute w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 via-slate-200 to-slate-500 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_1px_3px_rgba(0,0,0,0.2)] flex items-center justify-center border border-slate-300 select-none z-10 ${className}`}>
@@ -25,7 +26,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -36,10 +37,14 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      await apiClient.login({ username: email, password });
       setLoading(false);
       setSuccess(true);
-    }, 1500);
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'Adresse e-mail ou mot de passe incorrect.');
+    }
   };
 
   return (
