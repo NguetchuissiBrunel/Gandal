@@ -1,9 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Navbar from './Navbar';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { getDashboardPath } from '@/lib/authUtils';
+import { apiClient } from '@/lib/apiClient';
+import {
+  mapPublicationToCatalogueProject,
+  type CatalogueProject,
+} from '@/lib/publicationMapper';
 import {
   Shield,
   Zap,
@@ -21,6 +28,28 @@ import {
 } from 'lucide-react';
 
 export default function LandingPage({ initialSection }: { initialSection?: string }) {
+  const { user, loading: authLoading } = useAuthSession();
+  const isAuthenticated = !!user;
+  const dashboardHref = user ? getDashboardPath(user) : '/dashboard';
+  const [featuredProjects, setFeaturedProjects] = useState<CatalogueProject[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFeatured = async () => {
+      try {
+        const data = await apiClient.getPublicPublications({ size: 100 });
+        setFeaturedProjects(
+          (data.items || []).slice(0, 3).map(mapPublicationToCatalogueProject),
+        );
+      } catch {
+        setFeaturedProjects([]);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    loadFeatured();
+  }, []);
+
   useEffect(() => {
     if (initialSection) {
       const element = document.querySelector(initialSection);
@@ -125,12 +154,32 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-md pt-4">
-            <Link href="/signup" className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-black transition-all duration-300 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 text-center flex items-center justify-center">
-              S'inscrire ici
-            </Link>
-            <Link href="/login" className="px-8 py-4 border-2 border-black text-black hover:bg-black hover:text-white font-bold rounded-xl transition-all duration-200 text-center flex items-center justify-center">
-              Connexion
-            </Link>
+            {authLoading ? (
+              <div className="h-14 w-full max-w-xs mx-auto rounded-xl bg-slate-100 animate-pulse" />
+            ) : isAuthenticated ? (
+              <Link
+                href={dashboardHref}
+                className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-black transition-all duration-300 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 text-center flex items-center justify-center gap-2"
+              >
+                Accéder à mon espace
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-black transition-all duration-300 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 text-center flex items-center justify-center"
+                >
+                  S&apos;inscrire ici
+                </Link>
+                <Link
+                  href="/login"
+                  className="px-8 py-4 border-2 border-black text-black hover:bg-black hover:text-white font-bold rounded-xl transition-all duration-200 text-center flex items-center justify-center"
+                >
+                  Connexion
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Cameroon Academic Identity */}
@@ -342,58 +391,86 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              title: "Portail de Supervision Multi-Agent",
-              desc: "Supervise et orchestre en temps réel les ressources physiques et virtuelles de GANDAL grâce à une architecture de 6 agents logiciels autonomes conformes aux normes FIPA.",
-              href: "/projects",
-            },
-            {
-              title: "Gestionnaire de Bibliothèque ENSPY",
-              desc: "Plateforme web centralisée facilitant la gestion, la recherche et l'emprunt d'ouvrages académiques et de mémoires de recherche pour les étudiants et enseignants de l'école.",
-              href: "/projects",
-            },
-            {
-              title: "Contrôle Intelligent de Trafic",
-              desc: "Système prédictif de régulation des feux de signalisation de Yaoundé basé sur l'analyse de flux vidéo par apprentissage profond, hébergé localement sur nos clusters.",
-              href: "/projects",
-            },
-          ].map((project, idx) => (
-            <div
-              key={idx}
-              className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:border-black transition-all duration-300 flex flex-col"
-            >
-              {/* Image */}
-              <div className="relative h-52 w-full overflow-hidden bg-slate-900">
-                <Image
-                  src="/long-hallway-with-row-servers-center.jpg"
-                  alt={project.title}
-                  fill
-                  className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+        {projectsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm animate-pulse"
+              >
+                <div className="h-52 bg-slate-200" />
+                <div className="p-6 space-y-3">
+                  <div className="h-5 bg-slate-200 rounded-lg w-3/4" />
+                  <div className="h-3 bg-slate-100 rounded-lg w-full" />
+                </div>
               </div>
+            ))}
+          </div>
+        ) : featuredProjects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {featuredProjects.map((project) => (
+              <div
+                key={project.id}
+                className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:border-black transition-all duration-300 flex flex-col"
+              >
+                <div className="relative h-52 w-full overflow-hidden bg-slate-900">
+                  <Image
+                    src="/long-hallway-with-row-servers-center.jpg"
+                    alt={project.title}
+                    fill
+                    className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-3 left-4">
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-white/90 text-blue-700 border border-blue-100">
+                      {project.category}
+                    </span>
+                  </div>
+                </div>
 
-              {/* Body */}
-              <div className="p-6 flex flex-col gap-4 flex-grow">
-                <h3 className="text-lg font-black text-black group-hover:text-blue-600 transition-colors leading-snug">
-                  {project.title}
-                </h3>
-                <p className="text-slate-500 text-sm leading-relaxed flex-grow">
-                  {project.desc}
-                </p>
-                <a
-                  href={project.href}
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-black uppercase tracking-wider transition-all duration-200 group-hover:translate-x-1"
-                >
-                  Voir le projet
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+                <div className="p-6 flex flex-col gap-4 flex-grow">
+                  <h3 className="text-lg font-black text-black group-hover:text-blue-600 transition-colors leading-snug">
+                    {project.title}
+                  </h3>
+                  <p className="text-slate-500 text-sm leading-relaxed flex-grow">{project.desc}</p>
+                  {project.href ? (
+                    <a
+                      href={project.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-black uppercase tracking-wider transition-all duration-200 group-hover:translate-x-1"
+                    >
+                      Voir le projet
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <Link
+                      href="/projects"
+                      className="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-black uppercase tracking-wider transition-all duration-200 group-hover:translate-x-1"
+                    >
+                      Voir le catalogue
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center bg-white rounded-3xl border border-slate-200 p-12 space-y-3">
+            <p className="text-slate-500 text-sm">
+              Aucune publication publique pour le moment. Consultez le catalogue ou publiez votre
+              projet depuis votre espace étudiant.
+            </p>
+            <Link
+              href="/projects"
+              className="inline-flex items-center gap-2 text-xs font-black text-blue-600 hover:text-black uppercase tracking-wider"
+            >
+              Ouvrir le catalogue
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
 
         {/* Catalog CTA */}
         <div className="text-center mt-12">
@@ -455,15 +532,27 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
               Déposez vos codes sources, documentations techniques et configurez vos environnements d'exécution virtuels sous le contrôle autonome des agents de supervision GANDAL.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link
-                href="/signup"
-                className="px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                Nous Rejoindre
-                <ArrowUpRight className="w-4 h-4" />
-              </Link>
-            </div>
+            {!authLoading && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                {isAuthenticated ? (
+                  <Link
+                    href={dashboardHref}
+                    className="px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    Mon tableau de bord
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  <Link
+                    href="/signup"
+                    className="px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    Nous Rejoindre
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>

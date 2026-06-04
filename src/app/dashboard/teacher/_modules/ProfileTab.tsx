@@ -5,14 +5,20 @@ import { User, Mail, Briefcase, Lock, Eye, EyeOff } from 'lucide-react';
 import Screw3D from '@/components/Screw3D';
 import type { TeacherProfile, ShowToastFn } from './types';
 
+export interface TeacherProfileStats {
+  activeVms: number;
+  validatedProjects: number;
+  pendingRequests: number;
+}
+
 interface ProfileTabProps {
   profile: TeacherProfile;
   onSave: (updated: TeacherProfile) => void;
   showToast: ShowToastFn;
-  pendingCount: number;
+  stats: TeacherProfileStats;
 }
 
-export default function ProfileTab({ profile, onSave, showToast, pendingCount }: ProfileTabProps) {
+export default function ProfileTab({ profile, onSave, showToast, stats }: ProfileTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<TeacherProfile>(profile);
   const [showPassword, setShowPassword] = useState(false);
@@ -138,7 +144,7 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
                 required
               />
 
-              {/* Adresse email */}
+              {/* Adresse email (lecture seule — non modifiable via PATCH enseignant) */}
               <EditField
                 icon={<Mail className="w-4 h-4 text-slate-400" />}
                 label="Adresse email"
@@ -146,6 +152,7 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
                 value={draft.email}
                 onChange={set('email')}
                 required
+                readOnly
               />
 
               {/* Fonction / Rôle */}
@@ -158,37 +165,9 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
                 required
               />
 
-              {/* Nouveau mot de passe — VISIBLE UNIQUEMENT EN ÉDITION */}
-              <div>
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
-                  Nouveau mot de passe
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <Lock className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Laisser vide pour ne pas changer"
-                    value={draft.password || ''}
-                    onChange={set('password')}
-                    className="w-full text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-10 py-3 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300 placeholder:font-normal"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                  >
-                    {showPassword
-                      ? <EyeOff className="w-4 h-4" />
-                      : <Eye className="w-4 h-4" />
-                    }
-                  </button>
-                </div>
-                <p className="text-[9px] text-slate-400 mt-1 font-medium">
-                  Laissez vide pour conserver le mot de passe actuel.
-                </p>
-              </div>
+              <p className="text-[10px] text-slate-500 font-medium md:col-span-2">
+                L&apos;e-mail et le mot de passe ne sont pas modifiables via l&apos;API actuelle. Seuls le nom d&apos;utilisateur et le rôle sont enregistrés.
+              </p>
             </div>
           </form>
         )}
@@ -204,9 +183,9 @@ export default function ProfileTab({ profile, onSave, showToast, pendingCount }:
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'VMs Actives', count: '14', unit: 'Machines', accent: 'bg-blue-600' },
-              { label: 'Projets Validés', count: '8', unit: 'Projets', accent: 'bg-emerald-500' },
-              { label: 'Demandes en attente', count: `${pendingCount}`, unit: 'Requêtes', accent: 'bg-amber-500' },
+              { label: 'VMs Actives', count: String(stats.activeVms), unit: 'Machines', accent: 'bg-blue-600' },
+              { label: 'Projets Validés', count: String(stats.validatedProjects), unit: 'Projets', accent: 'bg-emerald-500' },
+              { label: 'Demandes en attente', count: String(stats.pendingRequests), unit: 'Requêtes', accent: 'bg-amber-500' },
             ].map((stat, idx) => (
               <div key={idx} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <div className={`h-1.5 w-full ${stat.accent}`} />
@@ -241,7 +220,7 @@ function ReadField({ icon, label, value }: { icon: React.ReactNode; label: strin
 
 /* ── Champ édition ── */
 function EditField({
-  icon, label, type, value, onChange, required,
+  icon, label, type, value, onChange, required, readOnly,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -249,6 +228,7 @@ function EditField({
   value: string;
   onChange: React.ChangeEventHandler<HTMLInputElement>;
   required?: boolean;
+  readOnly?: boolean;
 }) {
   return (
     <div>
@@ -260,9 +240,14 @@ function EditField({
         <input
           type={type}
           required={required}
+          readOnly={readOnly}
           value={value}
           onChange={onChange}
-          className="w-full text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3 py-3 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
+          className={`w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl pl-10 pr-3 py-3 transition-all ${
+            readOnly
+              ? 'bg-slate-100 text-slate-600 cursor-not-allowed'
+              : 'bg-slate-50 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100'
+          }`}
         />
       </div>
     </div>

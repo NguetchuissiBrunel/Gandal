@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, ExternalLink, X, Plus, Image, Link, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
+import { BookOpen, ExternalLink, X, Plus, Image, Link, FileText, CheckCircle, AlertTriangle, Eye, Pencil } from 'lucide-react';
 import Screw3D from '@/components/Screw3D';
+import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
+import PublicationEditModal from '@/components/dashboard/PublicationEditModal';
+import type { PublicationRead } from '@/lib/apiClient';
 import type { Publication } from './types';
 
 interface PublicationsTabProps {
@@ -10,6 +13,7 @@ interface PublicationsTabProps {
   onSaveGrade?: (pubId: string, grade: string) => void;
   teacherName: string;
   onCreatePublication?: (pub: Omit<Publication, 'id'>) => void;
+  onUpdatePublication?: (updated: PublicationRead) => void;
 }
 
 const STATUS_COLORS: Record<Publication['status'], string> = {
@@ -27,9 +31,11 @@ const STATUS_LABELS: Record<Publication['status'], string> = {
 export default function PublicationsTab({ 
   publications, 
   teacherName,
-  onCreatePublication 
+  onCreatePublication,
+  onUpdatePublication,
 }: PublicationsTabProps) {
-  const [selectedPub, setSelectedPub] = useState<Publication | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
@@ -132,14 +138,23 @@ export default function PublicationsTab({
                   )}
                 </div>
 
-                <div className="border-t border-slate-200/60 pt-3 flex items-center justify-between gap-4">
-                  <span className="text-[10px] text-slate-400 font-bold italic">{pub.id}</span>
+                <div className="border-t border-slate-200/60 pt-3 flex items-center justify-end gap-2 flex-wrap">
                   <button
-                    onClick={() => setSelectedPub(pub)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer shadow-sm hover:shadow-md"
+                    type="button"
+                    onClick={() => setDetailId(parseInt(pub.id, 10))}
+                    className="px-3 py-2 border border-slate-200 text-slate-700 text-[10px] font-black uppercase rounded-lg flex items-center gap-1 cursor-pointer"
                   >
-                    Détails
+                    <Eye className="w-3 h-3" /> API
                   </button>
+                  {onUpdatePublication && (
+                    <button
+                      type="button"
+                      onClick={() => setEditId(parseInt(pub.id, 10))}
+                      className="px-3 py-2 border border-blue-200 text-blue-700 text-[10px] font-black uppercase rounded-lg flex items-center gap-1 cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" /> Modifier
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -153,51 +168,19 @@ export default function PublicationsTab({
         )}
       </div>
 
-      {/* Modal Détails */}
-      {selectedPub && (
-        <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-white border border-slate-200 rounded-2xl w-full max-w-md p-8 overflow-hidden shadow-xl">
-            <button onClick={() => setSelectedPub(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 transition-colors cursor-pointer">
-              <X className="w-5 h-5" />
-            </button>
+      {detailId != null && (
+        <EntityDetailModal kind="publication" id={detailId} onClose={() => setDetailId(null)} />
+      )}
 
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide border-b border-slate-200 pb-4 mb-6 text-center pt-2">
-              Détails Publication
-            </h3>
-
-            <div className="space-y-4 text-xs font-semibold text-slate-700">
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                {[
-                  { label: 'nom', value: selectedPub.nom },
-                  { label: 'lien', value: selectedPub.lien },
-                  { label: 'status', value: STATUS_LABELS[selectedPub.status] },
-                ].map(({ label, value }) => (
-                  <p key={label}>
-                    <span className="text-slate-400 font-bold block uppercase text-[9px] mb-0.5">{label}</span>
-                    {label === 'lien' && value ? (
-                      <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">{value}</a>
-                    ) : value}
-                  </p>
-                ))}
-              </div>
-              <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-1">
-                <span className="text-blue-600 font-bold block uppercase text-[9px]">description</span>
-                <p className="leading-relaxed text-slate-600">{selectedPub.description}</p>
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] text-slate-600 font-bold">
-                <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
-                <p>Supervisé par : {teacherName}</p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setSelectedPub(null)}
-              className="mt-6 w-full py-3 bg-slate-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
+      {editId != null && onUpdatePublication && (
+        <PublicationEditModal
+          publicationId={editId}
+          onClose={() => setEditId(null)}
+          onSaved={(updated) => {
+            onUpdatePublication(updated);
+            setEditId(null);
+          }}
+        />
       )}
 
       {/* Modal Création de Publication */}

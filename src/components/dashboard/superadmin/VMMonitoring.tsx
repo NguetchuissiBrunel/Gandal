@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Server, Cpu, HardDrive, Trash2, PauseCircle, PlayCircle } from 'lucide-react';
+import { Server, Cpu, HardDrive, Trash2, PauseCircle, PlayCircle, Eye } from 'lucide-react';
+import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import ScrewCard, { Screw } from '@/components/dashboard/superadmin/ScrewCard';
 import { apiClient } from '@/lib/apiClient';
 
@@ -11,6 +12,8 @@ interface VM {
   nom: string;
   size_rom: string;
   size_ram: string;
+  size_rom_num: number;
+  size_ram_num: number;
   iso: string;
   iso_image: string;
   ip_address: string;
@@ -27,16 +30,30 @@ const STATUT_BADGE: Record<VM['status'], string> = {
   arrêtée: 'bg-red-50 text-red-600 border border-red-200',
 };
 
-const RESOURCE_BARS = [
-  { label: 'CPU Moyen', value: 67 },
-  { label: 'RAM Moyenne', value: 54 },
-  { label: 'Stockage Utilisé', value: 48 },
-];
+function buildResourceBars(vms: { n_cpu: number; size_ram: number; size_rom: number }[]) {
+  if (vms.length === 0) {
+    return [
+      { label: 'CPU alloués', value: 0 },
+      { label: 'RAM allouée (Go)', value: 0 },
+      { label: 'Stockage alloué (Go)', value: 0 },
+    ];
+  }
+  const totalCpu = vms.reduce((s, v) => s + v.n_cpu, 0);
+  const totalRam = vms.reduce((s, v) => s + v.size_ram, 0);
+  const totalRom = vms.reduce((s, v) => s + v.size_rom, 0);
+  const cap = (n: number, max: number) => Math.min(100, Math.round((n / max) * 100) || 0);
+  return [
+    { label: 'CPU alloués', value: cap(totalCpu, vms.length * 8) },
+    { label: 'RAM allouée (Go)', value: cap(totalRam, vms.length * 16) },
+    { label: 'Stockage alloué (Go)', value: cap(totalRom, vms.length * 100) },
+  ];
+}
 
 export default function VMMonitoring() {
   const [vms, setVms] = useState<VM[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [detailVmId, setDetailVmId] = useState<number | null>(null);
 
   const fetchVms = async () => {
     try {
@@ -52,14 +69,16 @@ export default function VMMonitoring() {
           nom: vm.node || `vm-${vm.id}`,
           size_rom: `${vm.size_rom} Go`,
           size_ram: `${vm.size_ram} Go`,
+          size_rom_num: vm.size_rom,
+          size_ram_num: vm.size_ram,
           iso: vm.iso || 'ubuntu-22.04',
           iso_image: vm.iso_image || 'Ubuntu Server',
-          ip_address: vm.ip_address || '0.0.0.0',
+          ip_address: vm.ip_address || '—',
           mode: 'KVM',
           n_cpu: vm.n_cpu,
           status,
           date_stop_at: vm.date_stop_at || null,
-          ssh_public_key: vm.ssh_public_key || 'N/A',
+          ssh_public_key: vm.ssh_public_key || '—',
         };
       });
       setVms(mapped);
@@ -75,6 +94,15 @@ export default function VMMonitoring() {
   }, []);
 
   const activeCount = vms.filter(v => v.status === 'active').length;
+  const resourceBars = buildResourceBars(
+    vms.map((v) => ({
+      n_cpu: v.n_cpu,
+      size_ram: v.size_ram_num,
+      size_rom: v.size_rom_num,
+    })),
+  );
+  const totalCpu = vms.reduce((s, v) => s + v.n_cpu, 0);
+  const totalRam = vms.reduce((s, v) => s + v.size_ram_num, 0);
 
   const handleToggleSuspend = async (id: string) => {
     const vm = vms.find(v => v.id === id);
@@ -131,9 +159,10 @@ export default function VMMonitoring() {
             <Cpu size={22} />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">CPU Moyen</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">CPU alloués</p>
             <p className="text-3xl font-black text-slate-900">
-              67<span className="text-lg text-slate-400">%</span>
+              {totalCpu}
+              <span className="text-lg text-slate-400"> cores</span>
             </p>
           </div>
         </div>
@@ -143,9 +172,10 @@ export default function VMMonitoring() {
             <HardDrive size={22} />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">RAM Moyenne</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">RAM allouée</p>
             <p className="text-3xl font-black text-slate-900">
-              54<span className="text-lg text-slate-400">%</span>
+              {totalRam}
+              <span className="text-lg text-slate-400"> Go</span>
             </p>
           </div>
         </div>
@@ -154,7 +184,7 @@ export default function VMMonitoring() {
       <ScrewCard className="p-6">
         <h2 className="text-base font-black text-slate-900 mb-6 pt-2 px-2">Utilisation des Ressources</h2>
         <div className="space-y-5">
-          {RESOURCE_BARS.map(bar => (
+          {resourceBars.map(bar => (
             <div key={bar.label}>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-700">{bar.label}</p>
@@ -244,6 +274,14 @@ export default function VMMonitoring() {
                 ) : (
                   <>
                     <button
+                      type="button"
+                      onClick={() => setDetailVmId(parseInt(vm.id, 10))}
+                      className="px-3 py-2 border border-slate-200 rounded-xl hover:border-indigo-400 cursor-pointer"
+                      title="Détail API"
+                    >
+                      <Eye size={13} className="text-indigo-600" />
+                    </button>
+                    <button
                       onClick={() => handleToggleSuspend(vm.id)}
                       className="flex-1 border border-slate-200 text-slate-700 text-xs font-bold tracking-wider uppercase rounded-xl px-3 py-2 hover:border-black transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
@@ -266,6 +304,10 @@ export default function VMMonitoring() {
           ))}
         </div>
       </div>
+
+      {detailVmId != null && (
+        <EntityDetailModal kind="vm" id={detailVmId} onClose={() => setDetailVmId(null)} />
+      )}
     </div>
   );
 }

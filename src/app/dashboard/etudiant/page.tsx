@@ -22,7 +22,8 @@ import RequestsTab from '@/components/dashboard/RequestsTab';
 import PublicationsTab from '@/components/dashboard/PublicationsTab';
 import ProfileTab from '@/components/dashboard/ProfileTab';
 import DNSTab from '@/components/dashboard/DNSTab';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient, type TeacherRead, type PublicationRead } from '@/lib/apiClient';
+import { filterByUserId, filterRequestsForStudent } from '@/lib/approvalUtils';
 
 interface VM {
   id: string;
@@ -82,7 +83,7 @@ const mapVMToUI = (vm: any): VM => {
     cpu: vm.n_cpu,
     ram: vm.size_ram,
     disk: vm.size_rom,
-    ip: vm.ip_address || '192.168.10.100',
+    ip: vm.ip_address || '—',
     project: vm.iso_image || 'Projet Gandal',
     handover: (vm.date_stop_at ? 'Prêt' : 'Non initié') as VM['handover'],
   };
@@ -128,8 +129,8 @@ const mapPublicationToUI = (pub: any): Publication => {
     gitUrl: pub.lien || '',
     date: 'Récemment',
     checklist: { code: true, report: true, guide: false, vm: false },
-    views: 12,
-    likes: 3,
+    views: 0,
+    likes: 0,
   };
 };
 
@@ -148,6 +149,8 @@ export default function StudentDashboard() {
   const [vms, setVms] = useState<VM[]>([]);
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
+  const [teachers, setTeachers] = useState<TeacherRead[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -180,15 +183,23 @@ export default function StudentDashboard() {
           department: me.departement,
         });
 
-        const [vmsData, requestsData, publicationsData] = await Promise.all([
+        const [vmsData, requestsData, publicationsData, teachersData] = await Promise.all([
           apiClient.getVms().catch(() => ({ items: [] })),
           apiClient.getRequests().catch(() => ({ items: [] })),
           apiClient.getPublications().catch(() => ({ items: [] })),
+          apiClient.getTeachers().catch(() => ({ items: [] })),
         ]);
 
-        setVms(vmsData.items.map(mapVMToUI));
-        setRequests(requestsData.items.map(mapRequestToUI));
-        setPublications(publicationsData.items.map(mapPublicationToUI));
+        setTeachers(teachersData.items || []);
+        setLoadingTeachers(false);
+
+        const myVms = filterByUserId(vmsData.items || [], me.id);
+        const myRequests = filterRequestsForStudent(requestsData.items || [], me.id);
+        const myPublications = filterByUserId(publicationsData.items || [], me.id);
+
+        setVms(myVms.map(mapVMToUI));
+        setRequests(myRequests.map(mapRequestToUI));
+        setPublications(myPublications.map(mapPublicationToUI));
       } catch (err) {
         console.error('Error loading dashboard data:', err);
         showToast('Erreur lors du chargement des données.', 'danger');
@@ -200,43 +211,7 @@ export default function StudentDashboard() {
     loadDashboardData();
   }, [router]);
 
-  // ── Callbacks VMs ──
-  const handleCreateVM = async (newVM: Omit<VM, 'id' | 'ip' | 'handover'>) => {
-    try {
-      let statusVal: 'up' | 'waiting' | 'stopped' = 'stopped';
-      if (newVM.status === 'Active') statusVal = 'up';
-      else if (newVM.status === 'En cours') statusVal = 'waiting';
-
-      const response = await apiClient.createVm({
-        user_id: studentInfo.id,
-        size_rom: newVM.disk,
-        size_ram: newVM.ram,
-        n_cpu: newVM.cpu,
-        status: statusVal,
-        iso: newVM.os,
-        node: newVM.name,
-        iso_image: newVM.project,
-      });
-
-      const mapped = mapVMToUI(response);
-      setVms((prev) => [...prev, mapped]);
-      showToast(`VM "${mapped.name}" créée avec succès !`);
-      return true;
-    } catch (err: any) {
-      return err.message || 'Une erreur est survenue lors de la création de la VM.';
-    }
-  };
-
-  const handleDeleteVM = async (id: string) => {
-    try {
-      await apiClient.deleteVm(parseInt(id));
-      setVms((prev) => prev.filter((v) => v.id !== id));
-      showToast('Machine virtuelle supprimée.', 'danger');
-    } catch (err: any) {
-      showToast(err.message || 'Erreur lors de la suppression de la VM.', 'danger');
-    }
-  };
-
+  // ── Callbacks VMs (start/stop/pause uniquement ; création/suppression via requêtes) ──
   const handleUpdateVMStatus = async (id: string, newStatus: 'Active' | 'Arrêtée' | 'En cours') => {
     try {
       const vmId = parseInt(id);
@@ -259,31 +234,49 @@ export default function StudentDashboard() {
   };
 
   // ── Callbacks Requêtes ──
-  const handleSubmitRequest = async (newReq: Omit<RequestItem, 'id' | 'status' | 'date'>) => {
+  const handleSubmitRequest = async (
+    newReq: Omit<RequestItem, 'id' | 'status' | 'date'> & {
+      vmId?: string;
+      os?: string;
+      sizeRam?: number;
+      sizeRom?: number;
+      teacherId: number;
+      vmLabel?: string;
+    }
+  ) => {
     try {
-      const teachers = await apiClient.getTeachers().catch(() => ({ items: [] }));
-      const teacherId = teachers.items[0]?.id || 1;
+      const teacherId = newReq.teacherId;
 
       let response;
-      if (newReq.type === 'Création VM') {
-        response = await apiClient.createVmRequest({
+      if (newReq.type === 'Suppression VM') {
+        if (!newReq.vmId) {
+          showToast('Sélectionnez une VM à supprimer.', 'danger');
+          return;
+        }
+        response = await apiClient.deleteVmRequest({
           object: newReq.vmName,
           content: newReq.justification,
           teacher_id: teacherId,
-          size_rom: 40,
-          size_ram: 4,
-          os: 'Ubuntu',
+          vm_id: parseInt(newReq.vmId, 10),
+        });
+      } else if (newReq.type === 'Création VM') {
+        response = await apiClient.createVmRequest({
+          object: newReq.vmLabel || newReq.vmName,
+          content: newReq.justification,
+          teacher_id: teacherId,
+          size_rom: newReq.sizeRom ?? 40,
+          size_ram: newReq.sizeRam ?? 4,
+          os: newReq.os ?? 'Ubuntu',
         });
       } else {
-        response = await apiClient.createAccountRequest({
+        const targetVm = newReq.vmId ? vms.find((v) => v.id === newReq.vmId) : undefined;
+        response = await apiClient.createVmRequest({
           object: newReq.type,
-          content: `${newReq.vmName} - ${newReq.details}`,
-          nom: studentInfo.username,
-          email: studentInfo.email,
-          justification: newReq.justification,
-          matricule: studentInfo.matricule,
-          organisation: studentInfo.department,
+          content: `${newReq.vmName} — ${newReq.details}\n\n${newReq.justification}`,
           teacher_id: teacherId,
+          size_rom: targetVm?.disk ?? 40,
+          size_ram: targetVm?.ram ?? 4,
+          os: targetVm?.os ?? 'Ubuntu',
         });
       }
 
@@ -296,13 +289,46 @@ export default function StudentDashboard() {
   };
 
   // ── Callbacks Publications ──
+  const handleDeletePublication = async (id: string) => {
+    if (!confirm('Supprimer cette publication ?')) return;
+    try {
+      await apiClient.deletePublication(parseInt(id, 10));
+      setPublications((prev) => prev.filter((p) => p.id !== id));
+      showToast('Publication supprimée.', 'danger');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la suppression.', 'danger');
+    }
+  };
+
+  const handleUpdatePublication = async (updated: PublicationRead) => {
+    const mapped = mapPublicationToUI(updated);
+    setPublications((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
+    showToast('Publication mise à jour.');
+  };
+
   const handleSubmitPublication = async (newPub: Omit<Publication, 'id' | 'date' | 'views' | 'likes'>) => {
     try {
+      const livrables = [
+        newPub.checklist.code && 'code',
+        newPub.checklist.report && 'rapport',
+        newPub.checklist.guide && 'guide',
+        newPub.checklist.vm && 'vm',
+      ].filter(Boolean).join(', ');
+
+      const description = [
+        `[${newPub.category}]`,
+        newPub.vmName !== 'Aucune VM liée' ? `VM: ${newPub.vmName}` : null,
+        newPub.desc,
+        livrables ? `Livrables: ${livrables}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
       const response = await apiClient.createPublication({
         nom: newPub.title,
-        description: newPub.desc,
-        lien: newPub.gitUrl,
-        photo: newPub.category,
+        description,
+        lien: newPub.gitUrl || null,
+        photo: null,
         user_id: studentInfo.id,
         status: 'published',
       });
@@ -319,6 +345,7 @@ export default function StudentDashboard() {
     try {
       const updated = await apiClient.updateStudent(studentInfo.id, {
         username: newInfo.username,
+        email: newInfo.email,
         level: newInfo.level,
         departement: newInfo.department,
       });
@@ -517,8 +544,9 @@ export default function StudentDashboard() {
           {activeTab === 'vms' && (
             <VMsTab
               vms={vms}
-              onCreateVM={handleCreateVM}
-              onDeleteVM={handleDeleteVM}
+              projectOptions={publications.map((p) => p.title)}
+              requestsOnly
+              onNavigateToRequests={() => setActiveTab('requests')}
               onUpdateVMStatus={handleUpdateVMStatus}
             />
           )}
@@ -526,7 +554,9 @@ export default function StudentDashboard() {
           {activeTab === 'requests' && (
             <RequestsTab
               requests={requests}
-              vms={vms.map(v => ({ id: v.id, name: v.name }))}
+              vms={vms.map((v) => ({ id: v.id, name: v.name, os: v.os, ram: v.ram, disk: v.disk }))}
+              teachers={teachers}
+              loadingTeachers={loadingTeachers}
               onSubmitRequest={handleSubmitRequest}
             />
           )}
@@ -536,11 +566,16 @@ export default function StudentDashboard() {
               publications={publications}
               vms={vms.map(v => ({ id: v.id, name: v.name }))}
               onSubmitPublication={handleSubmitPublication}
+              onDeletePublication={handleDeletePublication}
+              onUpdatePublication={handleUpdatePublication}
             />
           )}
 
           {activeTab === 'dns' && (
-            <DNSTab vms={vms} />
+            <DNSTab
+              listMode="by-vm"
+              vms={vms.map((v) => ({ id: v.id, name: v.name, ip: v.ip }))}
+            />
           )}
 
           {activeTab === 'profile' && (

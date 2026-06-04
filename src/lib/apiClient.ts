@@ -1,6 +1,27 @@
 import { components } from './api';
+import { syncAuthCookie } from './authCookie';
 
 const BASE_URL = 'https://gandal-api.onrender.com';
+
+export const AUTH_CHANGE_EVENT = 'gandal-auth-change';
+
+function notifyAuthChange() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+  }
+}
+/** Limite documentée par l'API (query.size ≤ 100). */
+const MAX_PAGE_SIZE = 100;
+
+function buildListQuery(params?: { page?: number; size?: number }): string {
+  const query = new URLSearchParams();
+  if (params?.page != null) query.set('page', String(params.page));
+  if (params?.size != null) {
+    query.set('size', String(Math.min(Math.max(1, params.size), MAX_PAGE_SIZE)));
+  }
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
 
 export type StudentRead = components['schemas']['StudentRead'];
 export type TeacherRead = components['schemas']['TeacherRead'];
@@ -9,6 +30,23 @@ export type RCreateVMRead = components['schemas']['RCreateVMRead'];
 export type RDeleteVMRead = components['schemas']['RDeleteVMRead'];
 export type RAccountRead = components['schemas']['RAccountRead'];
 export type PublicationRead = components['schemas']['PublicationRead'];
+
+/** Entrées DNS (OpenAPI — non présent dans api.ts généré localement). */
+export type DNSEntryRead = {
+  id: number;
+  hostname: string;
+  vm_id: number;
+  ip_address?: string | null;
+};
+
+export type DNSEntryCreate = {
+  hostname: string;
+  vm_id: number;
+};
+
+export type DNSEntryUpdate = {
+  hostname?: string | null;
+};
 
 class ApiClient {
   private get token(): string | null {
@@ -25,19 +63,26 @@ class ApiClient {
       } else {
         localStorage.removeItem('gandal_token');
       }
+      syncAuthCookie(value);
     }
   }
 
   setToken(value: string) {
     this.token = value;
+    notifyAuthChange();
   }
 
   clearToken() {
     this.token = null;
+    notifyAuthChange();
   }
 
   getToken(): string | null {
-    return this.token;
+    const t = this.token;
+    if (t && typeof window !== 'undefined') {
+      syncAuthCookie(t);
+    }
+    return t;
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -103,8 +148,10 @@ class ApiClient {
     });
   }
 
-  async getStudents(): Promise<{ items: StudentRead[]; total: number }> {
-    const response = await this.request<components['schemas']['PaginatedResponse_StudentRead_']>('/api/v1/users/students');
+  async getStudents(params?: { page?: number; size?: number }): Promise<{ items: StudentRead[]; total: number }> {
+    const response = await this.request<components['schemas']['PaginatedResponse_StudentRead_']>(
+      `/api/v1/users/students${buildListQuery(params)}`,
+    );
     return { items: response.items || [], total: response.total || 0 };
   }
 
@@ -119,6 +166,12 @@ class ApiClient {
     });
   }
 
+  async deleteStudent(id: number): Promise<void> {
+    await this.request<void>(`/api/v1/users/students/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // --- Users / Teachers ---
   async signupTeacher(teacherData: components['schemas']['TeacherCreate']): Promise<TeacherRead> {
     return this.request<TeacherRead>('/api/v1/users/teachers', {
@@ -127,9 +180,15 @@ class ApiClient {
     });
   }
 
-  async getTeachers(): Promise<{ items: TeacherRead[]; total: number }> {
-    const response = await this.request<components['schemas']['PaginatedResponse_TeacherRead_']>('/api/v1/users/teachers');
+  async getTeachers(params?: { page?: number; size?: number }): Promise<{ items: TeacherRead[]; total: number }> {
+    const response = await this.request<components['schemas']['PaginatedResponse_TeacherRead_']>(
+      `/api/v1/users/teachers${buildListQuery(params)}`,
+    );
     return { items: response.items || [], total: response.total || 0 };
+  }
+
+  async getTeacher(id: number): Promise<TeacherRead> {
+    return this.request<TeacherRead>(`/api/v1/users/teachers/${id}`);
   }
 
   async updateTeacher(id: number, data: components['schemas']['TeacherUpdate']): Promise<TeacherRead> {
@@ -139,10 +198,22 @@ class ApiClient {
     });
   }
 
+  async deleteTeacher(id: number): Promise<void> {
+    await this.request<void>(`/api/v1/users/teachers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // --- VMs ---
-  async getVms(): Promise<{ items: VMRead[]; total: number }> {
-    const response = await this.request<components['schemas']['PaginatedResponse_VMRead_']>('/api/v1/vms');
+  async getVms(params?: { page?: number; size?: number }): Promise<{ items: VMRead[]; total: number }> {
+    const response = await this.request<components['schemas']['PaginatedResponse_VMRead_']>(
+      `/api/v1/vms${buildListQuery(params)}`,
+    );
     return { items: response.items || [], total: response.total || 0 };
+  }
+
+  async getVm(vmId: number): Promise<VMRead> {
+    return this.request<VMRead>(`/api/v1/vms/${vmId}`);
   }
 
   async createVm(vmData: components['schemas']['VMCreate']): Promise<VMRead> {
@@ -184,9 +255,22 @@ class ApiClient {
   }
 
   // --- Requests (Requetes) ---
-  async getRequests(): Promise<{ items: (RCreateVMRead | RDeleteVMRead | RAccountRead)[]; total: number }> {
-    const response = await this.request<components['schemas']['PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__']>('/api/v1/requetes');
+  async getRequests(params?: { page?: number; size?: number }): Promise<{
+    items: (RCreateVMRead | RDeleteVMRead | RAccountRead)[];
+    total: number;
+  }> {
+    const response = await this.request<
+      components['schemas']['PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__']
+    >(`/api/v1/requetes${buildListQuery(params)}`);
     return { items: response.items || [], total: response.total || 0 };
+  }
+
+  async getRequest(
+    requeteId: number,
+  ): Promise<RCreateVMRead | RDeleteVMRead | RAccountRead> {
+    return this.request<RCreateVMRead | RDeleteVMRead | RAccountRead>(
+      `/api/v1/requetes/${requeteId}`,
+    );
   }
 
   async createVmRequest(data: components['schemas']['RCreateVMCreate']): Promise<RCreateVMRead> {
@@ -210,9 +294,9 @@ class ApiClient {
     });
   }
 
-  async approveRequest(requeteId: number, sshPublicKey: string = ''): Promise<any> {
+  async approveRequest(requeteId: number, sshPublicKey: string = ''): Promise<unknown> {
     const body: components['schemas']['ApproveBody'] = { ssh_public_key: sshPublicKey };
-    return this.request<any>(`/api/v1/requetes/${requeteId}/approve`, {
+    return this.request<unknown>(`/api/v1/requetes/${requeteId}/approve`, {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -225,13 +309,27 @@ class ApiClient {
   }
 
   // --- Publications ---
-  async getPublications(): Promise<{ items: PublicationRead[]; total: number }> {
-    const response = await this.request<components['schemas']['PaginatedResponse_PublicationRead_']>('/api/v1/publications');
+  async getPublications(params?: { page?: number; size?: number }): Promise<{
+    items: PublicationRead[];
+    total: number;
+  }> {
+    const response = await this.request<components['schemas']['PaginatedResponse_PublicationRead_']>(
+      `/api/v1/publications${buildListQuery(params)}`,
+    );
     return { items: response.items || [], total: response.total || 0 };
   }
 
-  async getPublicPublications(): Promise<{ items: PublicationRead[]; total: number }> {
-    const response = await this.request<components['schemas']['PaginatedResponse_PublicationRead_']>('/api/v1/publications/public');
+  async getPublication(publicationId: number): Promise<PublicationRead> {
+    return this.request<PublicationRead>(`/api/v1/publications/${publicationId}`);
+  }
+
+  async getPublicPublications(params?: {
+    page?: number;
+    size?: number;
+  }): Promise<{ items: PublicationRead[]; total: number }> {
+    const response = await this.request<components['schemas']['PaginatedResponse_PublicationRead_']>(
+      `/api/v1/publications/public${buildListQuery(params)}`,
+    );
     return { items: response.items || [], total: response.total || 0 };
   }
 
@@ -253,6 +351,62 @@ class ApiClient {
     await this.request<void>(`/api/v1/publications/${publicationId}`, {
       method: 'DELETE',
     });
+  }
+
+  // --- DNS ---
+  async getDnsEntries(params?: { page?: number; size?: number }): Promise<{
+    items: DNSEntryRead[];
+    total: number;
+  }> {
+    const response = await this.request<{
+      items: DNSEntryRead[];
+      total: number;
+    }>(`/api/v1/dns${buildListQuery(params)}`);
+    return { items: response.items || [], total: response.total || 0 };
+  }
+
+  async getDnsEntry(dnsId: number): Promise<DNSEntryRead> {
+    return this.request<DNSEntryRead>(`/api/v1/dns/${dnsId}`);
+  }
+
+  async getDnsForVm(
+    vmId: number,
+    params?: { page?: number; size?: number },
+  ): Promise<{ items: DNSEntryRead[]; total: number }> {
+    const response = await this.request<{
+      items: DNSEntryRead[];
+      total: number;
+    }>(`/api/v1/dns/vms/${vmId}${buildListQuery(params)}`);
+    return { items: response.items || [], total: response.total || 0 };
+  }
+
+  async createDnsEntry(data: DNSEntryCreate): Promise<DNSEntryRead> {
+    return this.request<DNSEntryRead>('/api/v1/dns', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDnsEntry(dnsId: number, data: DNSEntryUpdate): Promise<DNSEntryRead> {
+    return this.request<DNSEntryRead>(`/api/v1/dns/${dnsId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDnsEntry(dnsId: number): Promise<void> {
+    await this.request<void>(`/api/v1/dns/${dnsId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // --- Health ---
+  async health(): Promise<unknown> {
+    return this.request<unknown>('/health');
+  }
+
+  async ready(): Promise<unknown> {
+    return this.request<unknown>('/ready');
   }
 }
 

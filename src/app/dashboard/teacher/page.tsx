@@ -15,7 +15,14 @@ import InstantiationTab from './_modules/InstantiationTab';
 import PublicationsTab from './_modules/PublicationsTab';
 import FloatingChatbot from '@/components/FloatingChatbot';
 import DNSTab from '@/components/dashboard/DNSTab';
-import { apiClient } from '@/lib/apiClient';
+import CredentialsModal from '@/components/dashboard/CredentialsModal';
+import { apiClient, type PublicationRead } from '@/lib/apiClient';
+import { parseApprovalCredentials, parseApprovedVmId } from '@/lib/approvalUtils';
+import type { ApprovalCredentials } from '@/lib/approvalUtils';
+import {
+  collectStudentIdsForTeacher,
+  loadVmsForTeacherDashboard,
+} from '@/lib/teacherDashboardUtils';
 
 const TABS = [
   { id: 'profile', label: 'Mon Profil', icon: User },
@@ -66,8 +73,8 @@ const mapDeployedVM = (vm: any): DeployedVm => ({
   rom: `${vm.size_rom} Go`,
   cpu: `${vm.n_cpu} Cores`,
   mode: vm.status === 'up' ? 'Active' : 'Arrêtée',
-  ip: vm.ip_address || '192.168.10.100',
-  lien: `ssh student@${vm.ip_address || '0.0.0.0'}`,
+  ip: vm.ip_address || '—',
+  lien: vm.ip_address ? `ssh student@${vm.ip_address}` : '—',
   createdAt: vm.date_stop_at || 'Récemment',
 });
 
@@ -78,16 +85,26 @@ export default function TeacherDashboard() {
 
   const [profile, setProfile] = useState<any>({
     id: 0,
-    username: 'bbatchakui',
-    email: 'bernabe.batchakui@enspy-uy1.cm',
+    username: '',
+    email: '',
     password: '',
-    role: 'Directeur de Projet'
+    role: '',
   });
+  const [approvalCredentials, setApprovalCredentials] = useState<{
+    creds: ApprovalCredentials;
+    name: string;
+    email?: string;
+  } | null>(null);
 
   const [accountRequests, setAccountRequests] = useState<AccountRequest[]>([]);
   const [vmRequests, setVmRequests] = useState<VmRequest[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [deployedVms, setDeployedVms] = useState<DeployedVm[]>([]);
+  const [profileStats, setProfileStats] = useState({
+    activeVms: 0,
+    validatedProjects: 0,
+    pendingRequests: 0,
+  });
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
   const showToast = (message: string, type: ToastType = 'success') => {
@@ -117,17 +134,64 @@ export default function TeacherDashboard() {
           role: me.role || 'Enseignant',
         });
 
-        const [requestsData, publicationsData, vmsData] = await Promise.all([
+        const [requestsData, publicationsData] = await Promise.all([
           apiClient.getRequests().catch(() => ({ items: [] })),
           apiClient.getPublications().catch(() => ({ items: [] })),
-          apiClient.getVms().catch(() => ({ items: [] })),
         ]);
 
         const allRequests = requestsData.items || [];
-        setAccountRequests(allRequests.filter((r: any) => r.type === 'r_account' && r.status === 'pending').map(mapAccountRequest));
-        setVmRequests(allRequests.filter((r: any) => (r.type === 'r_create_vm' || r.type === 'r_delete_vm') && r.status === 'pending').map(mapVmRequest));
-        setPublications((publicationsData.items || []).map(mapPublication));
-        setDeployedVms((vmsData.items || []).map(mapDeployedVM));
+        const roleLower = (me.role || '').toLowerCase();
+        const canSeeAllAccounts = roleLower === 'admin' || roleLower === 'superadmin';
+
+        const vmItems = await loadVmsForTeacherDashboard(me, allRequests).catch(() => []);
+        const studentIds = collectStudentIdsForTeacher(allRequests, me.id, canSeeAllAccounts);
+        setAccountRequests(
+          allRequests
+            .filter(
+              (r: { type?: string; status?: string; teacher_id?: number }) =>
+                r.type === 'r_account' &&
+                r.status === 'pending' &&
+                (canSeeAllAccounts || r.teacher_id === me.id),
+            )
+            .map(mapAccountRequest),
+        );
+        const pendingVm = allRequests.filter(
+          (r: { type?: string; status?: string; teacher_id?: number }) =>
+            (r.type === 'r_create_vm' || r.type === 'r_delete_vm') &&
+            r.status === 'pending' &&
+            (canSeeAllAccounts || r.teacher_id === me.id),
+        );
+        setVmRequests(pendingVm.map(mapVmRequest));
+
+        const pendingAccounts = allRequests.filter(
+          (r: { type?: string; status?: string; teacher_id?: number }) =>
+            r.type === 'r_account' &&
+            r.status === 'pending' &&
+            (canSeeAllAccounts || r.teacher_id === me.id),
+        );
+
+        setPublications(
+          (publicationsData.items || [])
+            .filter(
+              (p: { user_id?: number }) =>
+                canSeeAllAccounts ||
+                (typeof p.user_id === 'number' && studentIds.has(p.user_id)),
+            )
+            .map(mapPublication),
+        );
+        setDeployedVms(vmItems.map(mapDeployedVM));
+
+        const validatedCount = allRequests.filter(
+          (r: { status?: string; teacher_id?: number }) =>
+            r.status === 'validated' &&
+            (canSeeAllAccounts || r.teacher_id === me.id),
+        ).length;
+
+        setProfileStats({
+          activeVms: vmItems.filter((v: { status?: string }) => v.status === 'up').length,
+          validatedProjects: validatedCount,
+          pendingRequests: pendingAccounts.length + pendingVm.length,
+        });
       } catch (err) {
         console.error('Error loading teacher dashboard data:', err);
         showToast('Erreur lors du chargement des données.', 'danger');
@@ -141,9 +205,23 @@ export default function TeacherDashboard() {
 
   const handleApproveAccount = async (id: string, name: string) => {
     try {
-      await apiClient.approveRequest(parseInt(id), '');
-      setAccountRequests(p => p.filter(r => r.id !== id));
-      showToast(`Compte de ${name} validé !`);
+      const req = accountRequests.find((r) => r.id === id);
+      const response = await apiClient.approveRequest(parseInt(id, 10), '');
+      setAccountRequests((p) => p.filter((r) => r.id !== id));
+      setProfileStats((s) => ({
+        ...s,
+        pendingRequests: Math.max(0, s.pendingRequests - 1),
+        validatedProjects: s.validatedProjects + 1,
+      }));
+      const creds = parseApprovalCredentials(response);
+      if (creds) {
+        setApprovalCredentials({ creds, name, email: req?.email });
+        showToast(`Compte de ${name} validé — identifiants disponibles.`);
+      } else {
+        showToast(
+          `Compte de ${name} validé. Les identifiants ont été envoyés par e-mail à l'étudiant.`,
+        );
+      }
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la validation du compte.', 'danger');
     }
@@ -152,7 +230,11 @@ export default function TeacherDashboard() {
   const handleRejectAccount = async (id: string, name: string) => {
     try {
       await apiClient.rejectRequest(parseInt(id));
-      setAccountRequests(p => p.filter(r => r.id !== id));
+      setAccountRequests((p) => p.filter((r) => r.id !== id));
+      setProfileStats((s) => ({
+        ...s,
+        pendingRequests: Math.max(0, s.pendingRequests - 1),
+      }));
       showToast(`Compte de ${name} rejeté.`, 'danger');
     } catch (err: any) {
       showToast(err.message || 'Erreur lors du rejet du compte.', 'danger');
@@ -161,9 +243,25 @@ export default function TeacherDashboard() {
 
   const handleApproveVM = async (id: string, sName: string, pName: string) => {
     try {
-      await apiClient.approveRequest(parseInt(id), '');
-      setVmRequests(p => p.filter(r => r.id !== id));
+      const response = await apiClient.approveRequest(parseInt(id, 10), '');
+      setVmRequests((p) => p.filter((r) => r.id !== id));
+      setProfileStats((s) => ({
+        ...s,
+        pendingRequests: Math.max(0, s.pendingRequests - 1),
+        validatedProjects: s.validatedProjects + 1,
+      }));
+      const newVmId = parseApprovedVmId(response);
+      if (newVmId) {
+        const vm = await apiClient.getVm(newVmId).catch(() => null);
+        if (vm) {
+          setDeployedVms((prev) => {
+            const next = prev.filter((v) => v.id !== String(vm.id));
+            return [mapDeployedVM(vm), ...next];
+          });
+        }
+      }
       showToast(`Création VM validée pour "${pName}" !`);
+      await refreshDeployedVms();
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la validation de la VM.', 'danger');
     }
@@ -172,40 +270,60 @@ export default function TeacherDashboard() {
   const handleRejectVM = async (id: string, sName: string) => {
     try {
       await apiClient.rejectRequest(parseInt(id));
-      setVmRequests(p => p.filter(r => r.id !== id));
+      setVmRequests((p) => p.filter((r) => r.id !== id));
+      setProfileStats((s) => ({
+        ...s,
+        pendingRequests: Math.max(0, s.pendingRequests - 1),
+      }));
       showToast(`Demande de VM de ${sName} rejetée.`, 'danger');
+      await refreshDeployedVms();
     } catch (err: any) {
       showToast(err.message || 'Erreur lors du rejet de la VM.', 'danger');
     }
   };
 
-  const handleCreateVmDirectly = async (vm: any) => {
+  const refreshDeployedVms = async () => {
     try {
-      const response = await apiClient.createVm({
-        user_id: profile.id,
-        size_rom: parseInt(vm.rom),
-        size_ram: parseInt(vm.ram),
-        n_cpu: parseInt(vm.cpu),
-        status: 'stopped',
-        iso: vm.iso,
-        node: vm.nom,
-      });
-      const mapped = mapDeployedVM(response);
-      setDeployedVms((prev) => [mapped, ...prev]);
-      showToast('Nouvelle instance VM créée avec succès !');
-    } catch (err: any) {
-      showToast(err.message || 'Erreur lors de la création de la VM.', 'danger');
+      const me = await apiClient.getMe();
+      if (me.type !== 'teacher') return;
+      const { items: allRequests } = await apiClient.getRequests().catch(() => ({ items: [] }));
+      const vmItems = await loadVmsForTeacherDashboard(me, allRequests);
+      setDeployedVms(vmItems.map(mapDeployedVM));
+      setProfileStats((s) => ({
+        ...s,
+        activeVms: vmItems.filter((v) => v.status === 'up').length,
+      }));
+    } catch {
+      /* ignore */
     }
   };
 
   const handleDeleteVmDirectly = async (id: string) => {
     try {
-      await apiClient.deleteVm(parseInt(id));
+      await apiClient.deleteVm(parseInt(id, 10));
+      const removed = deployedVms.find((v) => v.id === id);
       setDeployedVms((prev) => prev.filter((v) => v.id !== id));
+      if (removed?.mode === 'Active') {
+        setProfileStats((s) => ({ ...s, activeVms: Math.max(0, s.activeVms - 1) }));
+      }
       showToast('Instance VM supprimée.', 'danger');
     } catch (err: any) {
-      showToast(err.message || 'Erreur lors de la suppression de la VM.', 'danger');
+      const msg = String(err.message || '');
+      if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+        showToast(
+          'Suppression non autorisée pour votre rôle. Traitez une requête de suppression VM.',
+          'info',
+        );
+      } else {
+        showToast(msg || 'Erreur lors de la suppression de la VM.', 'danger');
+      }
     }
+  };
+
+  const handleUpdatePublication = async (updated: PublicationRead) => {
+    const mapped = mapPublication(updated);
+    setPublications((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
+    showToast('Publication mise à jour.', 'success');
   };
 
   const handleCreatePublication = async (newPub: any) => {
@@ -286,7 +404,7 @@ export default function TeacherDashboard() {
       <header className="relative w-full bg-white border-b border-slate-200 py-3 sm:py-5 px-4 lg:px-12 flex items-center justify-between gap-3" style={{ zIndex: 10 }}>
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/" className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0 hover:scale-105 transition-transform duration-200 block">
-            <Image src="/logo.png" alt="Gandal Logo" fill className="object-contain" />
+            <Image src="/logo.png" alt="Gandal Logo" fill sizes="56px" className="object-contain" />
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -394,7 +512,7 @@ export default function TeacherDashboard() {
 
         <section className="col-span-1 lg:col-span-3">
           {activeTab === 'profile' && (
-            <ProfileTab profile={profile} onSave={handleUpdateProfile} showToast={showToast} pendingCount={accountRequests.length + vmRequests.length} />
+            <ProfileTab profile={profile} onSave={handleUpdateProfile} showToast={showToast} stats={profileStats} />
           )}
           {activeTab === 'inscriptions' && (
             <InscriptionsTab
@@ -412,10 +530,7 @@ export default function TeacherDashboard() {
           )}
           {activeTab === 'instantiation' && (
             <InstantiationTab
-              showToast={showToast}
-              teacherName={teacherFullName}
               deployedVms={deployedVms}
-              onVmCreated={handleCreateVmDirectly}
               onDeleteVm={handleDeleteVmDirectly}
             />
           )}
@@ -424,13 +539,26 @@ export default function TeacherDashboard() {
               publications={publications}
               teacherName={teacherFullName}
               onCreatePublication={handleCreatePublication}
+              onUpdatePublication={handleUpdatePublication}
             />
           )}
           {activeTab === 'dns' && (
-            <DNSTab vms={deployedVms.map(vm => ({ id: vm.id, name: vm.nom, ip: vm.ip }))} />
+            <DNSTab
+              listMode="by-vm"
+              vms={deployedVms.map((vm) => ({ id: vm.id, name: vm.nom, ip: vm.ip }))}
+            />
           )}
         </section>
       </main>
+
+      {approvalCredentials && (
+        <CredentialsModal
+          credentials={approvalCredentials.creds}
+          studentName={approvalCredentials.name}
+          studentEmail={approvalCredentials.email}
+          onClose={() => setApprovalCredentials(null)}
+        />
+      )}
 
       <FloatingChatbot />
     </div>

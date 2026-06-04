@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { FolderGit, LogIn, UserPlus, Menu, X } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { FolderGit, LogIn, UserPlus, Menu, X, LayoutDashboard, LogOut } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
+import { getDashboardPath, getRoleLabel, getUserInitials } from '@/lib/authUtils';
+import { useAuthSession } from '@/hooks/useAuthSession';
 
 interface NavbarProps {
   minimal?: boolean;
@@ -12,11 +15,15 @@ interface NavbarProps {
 }
 
 export default function Navbar({ minimal = false, onTransitionToLanding }: NavbarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, loading: authLoading } = useAuthSession();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
+
   const isLoginPage = pathname === '/login';
   const isSignupPage = pathname === '/signup';
+  const isAuthenticated = !!user;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -24,21 +31,136 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on resize or navigation
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  const handleLogout = () => {
+    apiClient.clearToken();
+    setIsMobileMenuOpen(false);
+    router.push('/');
+  };
+
   const navClass = isScrolled
     ? 'bg-white/95 border-slate-200 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.08)] py-2 px-4 sm:py-3 sm:px-6'
     : 'bg-white/90 border-slate-200/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] py-3 px-4 sm:py-4 sm:px-8';
+
+  const dashboardHref = user ? getDashboardPath(user) : '/dashboard';
+  const initials = user ? getUserInitials(user.username) : '';
+  const roleLabel = user ? getRoleLabel(user) : '';
+
+  const authActionsDesktop = authLoading ? (
+    <div className="h-9 w-28 rounded-xl bg-slate-100 animate-pulse" />
+  ) : isAuthenticated ? (
+    <div className="flex items-center gap-2 shrink-0">
+      <Link
+        href={dashboardHref}
+        className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-blue-200 transition-all duration-200 group"
+      >
+        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 group-hover:scale-105 transition-transform">
+          {initials}
+        </div>
+        <div className="flex flex-col min-w-0 max-w-[140px]">
+          <span className="text-xs font-bold text-slate-900 truncate leading-tight">
+            {user.username}
+          </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-blue-600 truncate">
+            {roleLabel}
+          </span>
+        </div>
+      </Link>
+
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="p-2 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors cursor-pointer"
+        title="Déconnexion"
+      >
+        <LogOut className="w-4 h-4" />
+      </button>
+    </div>
+  ) : null;
+
+  const guestActionsDesktop =
+    !authLoading && !isAuthenticated ? (
+      <>
+        {!isLoginPage && (
+          <Link
+            href="/login"
+            className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-blue-600 transition-all duration-200 whitespace-nowrap"
+          >
+            Connexion
+          </Link>
+        )}
+        {!isSignupPage && (
+          <Link
+            href="/signup"
+            className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-slate-950 rounded-xl transition-all duration-300 shadow-md shadow-blue-500/10 whitespace-nowrap"
+          >
+            S&apos;inscrire
+          </Link>
+        )}
+      </>
+    ) : null;
+
+  const authActionsMobile = authLoading ? null : isAuthenticated ? (
+    <>
+      <Link
+        href={dashboardHref}
+        onClick={() => setIsMobileMenuOpen(false)}
+        className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100"
+      >
+        <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shrink-0">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-slate-900 truncate">{user.username}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{roleLabel}</p>
+        </div>
+        <LayoutDashboard className="w-4 h-4 text-blue-600 shrink-0" />
+      </Link>
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 text-red-600 transition-all font-bold text-xs uppercase tracking-wider w-full cursor-pointer"
+      >
+        <LogOut className="w-4 h-4" />
+        Déconnexion
+      </button>
+    </>
+  ) : null;
+
+  const guestActionsMobile =
+    !authLoading && !isAuthenticated ? (
+      <>
+        {!isLoginPage && (
+          <Link
+            href="/login"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-blue-600 transition-all font-bold text-xs uppercase tracking-wider"
+          >
+            <LogIn className="w-4 h-4 text-slate-500" />
+            Connexion
+          </Link>
+        )}
+        {!isSignupPage && (
+          <Link
+            href="/signup"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-xl bg-blue-600 text-white hover:bg-slate-950 transition-all font-bold text-xs uppercase tracking-wider justify-center shadow-md shadow-blue-500/10"
+          >
+            <UserPlus className="w-4 h-4" />
+            S&apos;inscrire
+          </Link>
+        )}
+      </>
+    ) : null;
 
   return (
     <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-6xl transition-all duration-300">
       <nav className={`w-full rounded-2xl border transition-all duration-300 ${navClass} backdrop-blur-md`}>
         <div className="flex items-center justify-between gap-2">
 
-          {/* Logo & Branding */}
           <a
             href="/"
             onClick={(e) => {
@@ -54,6 +176,7 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
                 src="/logo.png"
                 alt="Gandal Logo"
                 fill
+                sizes="48px"
                 className="object-contain"
                 priority
               />
@@ -75,28 +198,20 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
 
           {!minimal && (
             <>
-              {/* Navigation Links — Desktop only */}
               <div className="hidden md:flex items-center gap-6">
-                <Link href="/projects" className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/projects"
+                  className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-blue-600 transition-colors"
+                >
                   Catalogue Projets
                 </Link>
               </div>
 
-              {/* Action Buttons — Desktop only */}
               <div className="hidden md:flex items-center gap-3 shrink-0">
-                {!isLoginPage && (
-                  <Link href="/login" className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-blue-600 transition-all duration-200 whitespace-nowrap">
-                    Connexion
-                  </Link>
-                )}
-                {!isSignupPage && (
-                  <Link href="/signup" className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-slate-950 rounded-xl transition-all duration-300 shadow-md shadow-blue-500/10 whitespace-nowrap">
-                    S'inscrire
-                  </Link>
-                )}
+                {authActionsDesktop}
+                {guestActionsDesktop}
               </div>
 
-              {/* Hamburger Button — Mobile only */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="md:hidden p-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
@@ -109,7 +224,6 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
 
         </div>
 
-        {/* Mobile Dropdown Menu */}
         {!minimal && isMobileMenuOpen && (
           <div className="md:hidden mt-3 p-4 bg-white border border-slate-200 rounded-xl shadow-xl flex flex-col gap-3 animate-fade-in">
             <Link
@@ -122,26 +236,8 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
             </Link>
             <div className="h-px bg-slate-100" />
             <div className="flex flex-col gap-2">
-              {!isLoginPage && (
-                <Link
-                  href="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-blue-600 transition-all font-bold text-xs uppercase tracking-wider"
-                >
-                  <LogIn className="w-4 h-4 text-slate-500" />
-                  Connexion
-                </Link>
-              )}
-              {!isSignupPage && (
-                <Link
-                  href="/signup"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-blue-600 text-white hover:bg-slate-950 transition-all font-bold text-xs uppercase tracking-wider justify-center shadow-md shadow-blue-500/10"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  S'inscrire
-                </Link>
-              )}
+              {authActionsMobile}
+              {guestActionsMobile}
             </div>
           </div>
         )}

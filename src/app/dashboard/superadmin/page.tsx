@@ -4,25 +4,37 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Server, FileText, User, LogOut, ArrowLeft, Shield } from 'lucide-react';
+import { Server, FileText, User, LogOut, ArrowLeft, Shield, UserPlus, GraduationCap, Globe } from 'lucide-react';
+import DNSTab from '@/components/dashboard/DNSTab';
 import Screw3D from '@/components/Screw3D';
 import VMMonitoring from '@/components/dashboard/superadmin/VMMonitoring';
 import RequestsPanel from '@/components/dashboard/superadmin/RequestsPanel';
+import TeachersPanel from '@/components/dashboard/superadmin/TeachersPanel';
+import StudentsPanel from '@/components/dashboard/superadmin/StudentsPanel';
 import AdminProfile from '@/components/dashboard/superadmin/AdminProfile';
 import { apiClient } from '@/lib/apiClient';
+import type { TeacherRead } from '@/lib/apiClient';
 
 const INITIAL_PENDING = 0;
 
 const TABS = [
   { id: 'profile' as const, label: 'Mon Profil', icon: User },
-  { id: 'vms' as const, label: 'VMs', icon: Server },
+  { id: 'students' as const, label: 'Étudiants', icon: GraduationCap },
+  { id: 'teachers' as const, label: 'Enseignants', icon: UserPlus },
   { id: 'requests' as const, label: 'Requêtes', icon: FileText },
+  { id: 'vms' as const, label: 'VMs', icon: Server },
+  { id: 'dns' as const, label: 'DNS', icon: Globe },
 ];
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'vms' | 'requests' | 'profile'>('vms');
+  const [activeTab, setActiveTab] = useState<
+    'vms' | 'requests' | 'profile' | 'teachers' | 'students' | 'dns'
+  >('requests');
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [pendingCount, setPendingCount] = useState(INITIAL_PENDING);
+  const [adminUser, setAdminUser] = useState<TeacherRead | null>(null);
+  const [vmStats, setVmStats] = useState({ total: 0, active: 0 });
 
   useEffect(() => {
     const checkAuthAndFetch = async () => {
@@ -37,9 +49,24 @@ export default function SuperAdminDashboard() {
           router.replace('/dashboard');
           return;
         }
-        const requestsData = await apiClient.getRequests();
-        const pending = (requestsData.items || []).filter((r: any) => r.status === 'pending').length;
+        setAdminUser(me);
+
+        const [requestsData, vmsData, healthOk] = await Promise.all([
+          apiClient.getRequests(),
+          apiClient.getVms().catch(() => ({ items: [] })),
+          apiClient.health().then(() => true).catch(() => false),
+        ]);
+        setApiOnline(healthOk);
+        const pending = (requestsData.items || []).filter(
+          (r: { status?: string }) => r.status === 'pending',
+        ).length;
         setPendingCount(pending);
+
+        const vms = vmsData.items || [];
+        setVmStats({
+          total: vms.length,
+          active: vms.filter((v: { status?: string }) => v.status === 'up').length,
+        });
       } catch (err) {
         console.error(err);
         router.replace('/login');
@@ -137,8 +164,12 @@ export default function SuperAdminDashboard() {
               <div className="w-20 h-20 rounded-full border-2 border-black bg-indigo-50 flex items-center justify-center mb-4 select-none">
                 <Shield className="w-10 h-10 text-indigo-600" />
               </div>
-              <h3 className="font-black text-slate-900 text-base leading-tight">Gandal Root</h3>
-              <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mt-1">Super Admin</p>
+              <h3 className="font-black text-slate-900 text-base leading-tight">
+                {adminUser?.username || 'Administrateur'}
+              </h3>
+              <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mt-1">
+                {adminUser?.role || 'Super Admin'}
+              </p>
             </div>
 
             {/* Navigation */}
@@ -158,7 +189,15 @@ export default function SuperAdminDashboard() {
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="w-4 h-4 shrink-0" />
-                      {tab.id === 'vms' ? 'Machines Virtuelles' : tab.id === 'requests' ? 'Requêtes' : tab.label}
+                      {tab.id === 'vms'
+                        ? 'Machines Virtuelles'
+                        : tab.id === 'requests'
+                          ? 'Requêtes'
+                          : tab.id === 'students'
+                            ? 'Étudiants'
+                            : tab.id === 'teachers'
+                              ? 'Enseignants'
+                              : tab.label}
                     </div>
                     {badge !== undefined && badge > 0 && (
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600'}`}>{badge}</span>
@@ -181,10 +220,23 @@ export default function SuperAdminDashboard() {
             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Statut Système</h4>
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <p className="text-xs font-bold leading-tight">Proxmox Cluster : 3/3 Actifs</p>
+              <p className="text-xs font-bold leading-tight">
+                API : {apiOnline === null ? '…' : apiOnline ? 'En ligne' : 'Hors ligne'}
+              </p>
             </div>
+            <p className="text-xs font-bold leading-tight">
+              VMs actives : {vmStats.active}/{vmStats.total || '—'}
+            </p>
             <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
-              Supervision globale de l'annuaire GANDAL, de l'allocation des VMs et de la validation des inscriptions.
+              Gestion comptes, requêtes et VMs —{' '}
+              <a
+                href="https://gandal-api.onrender.com/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-300 hover:underline"
+              >
+                doc API
+              </a>
             </p>
           </div>
         </aside>
@@ -192,8 +244,11 @@ export default function SuperAdminDashboard() {
         {/* ── WORKSPACE ── */}
         <section className="col-span-1 lg:col-span-3">
           {activeTab === 'profile' && <AdminProfile />}
-          {activeTab === 'vms' && <VMMonitoring />}
+          {activeTab === 'students' && <StudentsPanel />}
+          {activeTab === 'teachers' && <TeachersPanel />}
           {activeTab === 'requests' && <RequestsPanel />}
+          {activeTab === 'vms' && <VMMonitoring />}
+          {activeTab === 'dns' && <DNSTab listMode="all" />}
         </section>
       </main>
     </div>

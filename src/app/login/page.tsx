@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
+import { CircleUser, Lock, Eye, EyeOff, ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 
 const Screw = ({ className }: { className: string }) => (
@@ -19,7 +19,7 @@ const Screw = ({ className }: { className: string }) => (
 );
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    if (!email || !password) {
+    if (!username || !password) {
       setError('Veuillez remplir tous les champs requis.');
       return;
     }
@@ -38,12 +38,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await apiClient.login({ username: email, password });
+      await apiClient.login({ username, password });
       setLoading(false);
       setSuccess(true);
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || 'Adresse e-mail ou mot de passe incorrect.');
+      setError(err.message || 'Nom d\'utilisateur ou mot de passe incorrect.');
     }
   };
 
@@ -107,21 +107,23 @@ export default function LoginPage() {
           {!success ? (
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* Adresse mail */}
+              {/* Nom d'utilisateur */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-600 block">
-                  Adresse Mail
+                <label htmlFor="login-username" className="text-xs font-bold text-slate-600 block">
+                  Nom d&apos;utilisateur
                 </label>
                 <div className="relative rounded-xl overflow-hidden group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
-                    <Mail className="w-4 h-4" />
+                    <CircleUser className="w-4 h-4" />
                   </div>
                   <input
-                    type="email"
+                    id="login-username"
+                    type="text"
                     required
-                    placeholder="nom.prenom@enspy-uy1.cm"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="username"
+                    placeholder="Votre nom d'utilisateur"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-sans"
                   />
                 </div>
@@ -129,7 +131,7 @@ export default function LoginPage() {
 
               {/* Mot de passe */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-600 block">
+                <label htmlFor="login-password" className="text-xs font-bold text-slate-600 block">
                   Mot de passe
                 </label>
                 <div className="relative rounded-xl overflow-hidden group">
@@ -137,8 +139,10 @@ export default function LoginPage() {
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     required
+                    autoComplete="current-password"
                     placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

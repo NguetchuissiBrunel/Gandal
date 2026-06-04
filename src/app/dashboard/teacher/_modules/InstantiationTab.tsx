@@ -1,62 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { Play, Server, Cpu, HardDrive, Layers, Globe, CheckCircle2, Trash2 } from 'lucide-react';
+import { Server, Cpu, HardDrive, Layers, Globe, CheckCircle2, Trash2 } from 'lucide-react';
 import Screw3D from '@/components/Screw3D';
-import type { DeployedVm, ShowToastFn } from './types';
+import type { DeployedVm } from './types';
 
 interface InstantiationTabProps {
-  showToast: ShowToastFn;
-  onVmCreated: (vm: DeployedVm) => void;
-  teacherName: string;
   deployedVms: DeployedVm[];
   onDeleteVm: (id: string) => void;
 }
 
-export default function InstantiationTab({
-  showToast,
-  onVmCreated,
-  teacherName,
-  deployedVms,
-  onDeleteVm,
-}: InstantiationTabProps) {
-  const [size_RAM, setSize_RAM] = useState('4');
-  const [size_ROM, setSize_ROM] = useState('80');
-  const [N_CPU, setN_CPU] = useState('2');
-  const [ISO_image, setISO_image] = useState('Ubuntu Server 24.04 LTS');
-  const [mode, setMode] = useState('Isolé');
-  const [SSH_Public_Key, setSSH_Public_Key] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const ip = `20.20.20.${19 + deployedVms.length}`;
-
-    const newVm: DeployedVm = {
-      id: `vm-${Date.now()}`,
-      nom: `VM — ${ISO_image} · ${N_CPU} CPU / ${size_RAM} Go RAM`,
-      iso: ISO_image,
-      ram: size_RAM,
-      rom: size_ROM,
-      cpu: N_CPU,
-      mode,
-      ip,
-      lien: `https://vm.gandal.enspy-uy1.cm/${ip}`,
-      createdAt: new Date().toLocaleString('fr-FR'),
-    };
-
-    onVmCreated(newVm);
-    showToast(`VM déployée — IP : ${ip}`, 'success');
-
-    // Réinitialiser le formulaire
-    setSize_RAM('4');
-    setSize_ROM('80');
-    setN_CPU('2');
-    setISO_image('Ubuntu Server 24.04 LTS');
-    setMode('Isolé');
-    setSSH_Public_Key('');
-  };
-
+export default function InstantiationTab({ deployedVms, onDeleteVm }: InstantiationTabProps) {
   return (
     <div className="space-y-8">
 
@@ -69,95 +22,19 @@ export default function InstantiationTab({
 
         <div className="border-b border-slate-100 pb-6">
           <h2 className="text-2xl font-black text-black tracking-tight uppercase leading-none">
-            Console d'Instanciation Directe
+            VMs des étudiants
           </h2>
-          <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-2">
-            DÉPLOIEMENT FORCÉ DE MACHINES VIRTUELLES SUR PROXMOX PAR ORCHESTRATION SMA
+          <p className="text-xs text-slate-500 font-medium mt-2">
+            Validez les demandes dans l&apos;onglet « Demandes VM » — la liste globale (GET /vms) est réservée aux admins.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <Field label="ISO_image (Système OS)">
-              <select
-                value={ISO_image}
-                onChange={(e) => setISO_image(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer"
-              >
-                <option>Ubuntu Server 24.04 LTS</option>
-                <option>Debian 12 Bookworm</option>
-                <option>Alpine Linux 3.20 (Minimal)</option>
-              </select>
-            </Field>
-
-            <Field label="N_CPU (Cœurs vCPU)">
-              <select
-                value={N_CPU}
-                onChange={(e) => setN_CPU(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer"
-              >
-                {['1', '2', '4', '8'].map((c) => (
-                  <option key={c} value={c}>{c} Cœur{Number(c) > 1 ? 's' : ''}</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="size_RAM (Mémoire vive)">
-              <select
-                value={size_RAM}
-                onChange={(e) => setSize_RAM(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer"
-              >
-                {['1', '2', '4', '8', '16', '32'].map((r) => (
-                  <option key={r} value={r}>{r} Go</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="size_ROM (Espace Disque)">
-              <div className="relative flex items-center">
-                <input
-                  type="number" min="10" max="500" required
-                  value={size_ROM}
-                  onChange={(e) => setSize_ROM(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 pr-12 focus:outline-none focus:border-blue-600 text-sm font-semibold font-mono"
-                />
-                <span className="absolute right-4 text-xs font-bold text-slate-400">Go</span>
-              </div>
-            </Field>
-
-            <Field label="mode (Réseau & Isolation)">
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 text-sm font-semibold cursor-pointer"
-              >
-                <option value="Isolé">Isolé (Étudiants)</option>
-                <option value="Public restreint">Public restreint</option>
-                <option value="Administration">Administration</option>
-              </select>
-            </Field>
-
-            <Field label="SSH_Public_Key (optionnel)">
-              <input
-                type="text"
-                placeholder="ssh-rsa AAAA..."
-                value={SSH_Public_Key}
-                onChange={(e) => setSSH_Public_Key(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-sm font-semibold font-mono"
-              />
-            </Field>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow-md"
-          >
-            <Play className="w-4 h-4 fill-white" />
-            Lancer l'instanciation de la VM
-          </button>
-        </form>
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium">
+          <p>
+            Pour créer une VM étudiante, approuvez une <strong>requête de création</strong> dans
+            « Demandes VM ». Les machines listées ci-dessous sont chargées via l&apos;API (détail par ID).
+          </p>
+        </div>
       </div>
 
       {/* ── VMs DÉPLOYÉES ── */}
@@ -190,7 +67,7 @@ export default function InstantiationTab({
             <Server className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="text-sm font-bold text-black uppercase tracking-wider">Aucune VM déployée</h3>
             <p className="text-xs text-slate-400 max-w-xs mx-auto">
-              Utilisez la console ci-dessus pour instancier votre première machine virtuelle.
+              Approuvez une demande de création VM dans l&apos;onglet « Demandes VM » pour voir une machine ici.
             </p>
           </div>
         )}
@@ -258,16 +135,6 @@ function SpecChip({ icon, label, value }: { icon: React.ReactNode; label: string
         <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-none">{label}</span>
         <span className="text-[10px] font-bold text-slate-800">{value}</span>
       </div>
-    </div>
-  );
-}
-
-/* ── Champ formulaire ── */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <label className="text-xs font-bold text-slate-600 block uppercase">{label}</label>
-      {children}
     </div>
   );
 }

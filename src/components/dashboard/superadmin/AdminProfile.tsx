@@ -38,13 +38,9 @@ export default function AdminProfile() {
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const updateData: any = {
-        username: nom,
-      };
-      if (changePassword && newPassword) {
-        updateData.password = newPassword;
-      }
-      await apiClient.updateTeacher(profile.id, updateData);
+      await apiClient.updateTeacher(profile.id, {
+        username: nom.trim(),
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
@@ -64,10 +60,10 @@ export default function AdminProfile() {
     );
   }
 
-  const emailVal = profile?.email || 'admin@gandal-enspy.cm';
-  const roleVal = profile?.role || 'Super Administrateur';
-  const departmentVal = profile?.departement || 'Génie Informatique — ENSPY';
-  const matriculeVal = profile?.matricule || 'ADM-001';
+  const emailVal = profile?.email || '—';
+  const roleVal = profile?.role || '—';
+  const departmentVal = (profile as { departement?: string })?.departement || '—';
+  const matriculeVal = (profile as { matricule?: string })?.matricule || '—';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -121,7 +117,7 @@ export default function AdminProfile() {
           <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">
             Paramètres & Sécurité
           </h2>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Mettre à jour vos coordonnées ou modifier votre mot de passe</p>
+          <p className="text-xs text-slate-500 mt-1 font-medium">Mettre à jour votre nom d&apos;utilisateur (PATCH /users/teachers)</p>
         </div>
 
         <form onSubmit={handleSave} className="space-y-6">
@@ -162,78 +158,9 @@ export default function AdminProfile() {
             </div>
           </div>
 
-          {/* Interrupteur pour modifier le mot de passe */}
-          <div className="pt-4 border-t border-slate-100">
-            <label className="flex items-center gap-3 cursor-pointer group select-none">
-              <input
-                type="checkbox"
-                checked={changePassword}
-                onChange={e => setChangePassword(e.target.checked)}
-                className="w-4.5 h-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-xs font-black uppercase tracking-wider text-slate-600 group-hover:text-indigo-600 transition">
-                Modifier le mot de passe
-              </span>
-            </label>
-          </div>
-
-          {/* Section mot de passe conditionnelle */}
-          {changePassword && (
-            <div className="space-y-5 bg-slate-50 border border-slate-100 rounded-2xl p-5 animate-slide-up duration-200">
-
-              {/* Ancien MDP */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                  Mot de passe actuel
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </span>
-                  <input
-                    type={showOld ? 'text' : 'password'}
-                    value={oldPassword}
-                    onChange={e => setOldPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className={`${inputClass} pr-11 bg-white`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOld(!showOld)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
-                  >
-                    {showOld ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Nouveau MDP */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                  Nouveau mot de passe
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Key className="w-4 h-4" />
-                  </span>
-                  <input
-                    type={showNew ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className={`${inputClass} pr-11 bg-white`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNew(!showNew)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
-                  >
-                    {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <p className="text-[10px] text-slate-500 font-medium pt-4 border-t border-slate-100">
+            Le changement de mot de passe n&apos;est pas exposé par l&apos;API (TeacherUpdate : username uniquement).
+          </p>
 
           {/* Bouton Enregistrer */}
           <button

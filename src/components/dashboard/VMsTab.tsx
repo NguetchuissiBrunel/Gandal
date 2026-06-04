@@ -6,6 +6,7 @@ import {
   Play,
   Square,
   RotateCw,
+  Eye,
   Trash2,
   Copy,
   Plus,
@@ -18,6 +19,7 @@ import {
   Terminal,
   AlertTriangle
 } from 'lucide-react';
+import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 
 interface VM {
   id: string;
@@ -34,13 +36,20 @@ interface VM {
 
 interface VMsTabProps {
   vms: VM[];
-  onCreateVM: (vm: Omit<VM, 'id' | 'ip' | 'handover'>) => Promise<boolean | string> | boolean | string;
-  onDeleteVM: (id: string) => void;
+  projectOptions?: string[];
+  /** Étudiant : création/suppression uniquement via l'onglet Requêtes */
+  requestsOnly?: boolean;
+  onNavigateToRequests?: () => void;
+  onCreateVM?: (vm: Omit<VM, 'id' | 'ip' | 'handover'>) => Promise<boolean | string> | boolean | string;
+  onDeleteVM?: (id: string) => void;
   onUpdateVMStatus: (id: string, newStatus: 'Active' | 'Arrêtée' | 'En cours') => void;
 }
 
 export default function VMsTab({
   vms,
+  projectOptions = [],
+  requestsOnly = false,
+  onNavigateToRequests,
   onCreateVM,
   onDeleteVM,
   onUpdateVMStatus
@@ -49,6 +58,7 @@ export default function VMsTab({
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [detailVmId, setDetailVmId] = useState<number | null>(null);
 
   const [formName, setFormName] = useState('');
   const [formOs, setFormOs] = useState<'Ubuntu' | 'Debian' | 'CentOS' | 'Windows'>('Ubuntu');
@@ -95,6 +105,7 @@ export default function VMsTab({
       return;
     }
 
+    if (!onCreateVM) return;
     const res = await onCreateVM({
       name: formName,
       os: formOs,
@@ -145,14 +156,35 @@ export default function VMsTab({
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:-translate-y-0.5"
-        >
-          <Plus className="w-4 h-4" />
-          Créer une VM
-        </button>
+        {requestsOnly ? (
+          <button
+            type="button"
+            onClick={onNavigateToRequests}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            Demander une VM
+          </button>
+        ) : (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" />
+            Créer une VM
+          </button>
+        )}
       </div>
+
+      {requestsOnly && (
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-800 font-medium">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-blue-600" />
+          <p>
+            La création et la suppression de machines passent par une <strong>requête validée par votre enseignant</strong>.
+            Utilisez l&apos;onglet <strong>Requêtes</strong> pour soumettre une demande.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
         <div className="relative flex-grow max-w-md">
@@ -309,6 +341,15 @@ export default function VMsTab({
                   )}
 
                   <button
+                    type="button"
+                    onClick={() => setDetailVmId(parseInt(vm.id, 10))}
+                    className="p-2 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl text-gray-600 transition-colors"
+                    title="Détail API"
+                  >
+                    <Eye className="w-3 h-3" />
+                  </button>
+
+                  <button
                     onClick={() => {
                       onUpdateVMStatus(vm.id, 'En cours');
                       setTimeout(() => onUpdateVMStatus(vm.id, 'Active'), 2500);
@@ -320,6 +361,7 @@ export default function VMsTab({
                     <RotateCw className="w-3 h-3" />
                   </button>
 
+                  {!requestsOnly && onDeleteVM && (
                   <button
                     onClick={() => {
                       if (confirm(`Êtes-vous sûr de vouloir supprimer la machine virtuelle ${vm.name} ?`)) {
@@ -331,6 +373,7 @@ export default function VMsTab({
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -341,13 +384,25 @@ export default function VMsTab({
           <Server className="w-12 h-12 text-gray-300 mx-auto" />
           <h3 className="text-lg font-bold text-gray-900">Aucune machine virtuelle</h3>
           <p className="text-gray-500 text-xs md:text-sm max-w-sm mx-auto font-medium">
-            Vous n'avez pas encore configuré de machine virtuelle. Cliquez sur "Créer une VM" pour commencer votre déploiement.
+            {requestsOnly
+              ? 'Soumettez une requête de création de VM pour que votre enseignant valide le déploiement.'
+              : 'Vous n\'avez pas encore configuré de machine virtuelle. Cliquez sur "Créer une VM" pour commencer votre déploiement.'}
           </p>
+          {requestsOnly && onNavigateToRequests && (
+            <button
+              type="button"
+              onClick={onNavigateToRequests}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 text-xs font-black uppercase text-white bg-blue-600 hover:bg-blue-700 rounded-xl"
+            >
+              <Plus className="w-4 h-4" />
+              Nouvelle requête
+            </button>
+          )}
         </div>
       )}
 
       {/* Modal */}
-      {isModalOpen && (
+      {!requestsOnly && isModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm animate-fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl border border-gray-200 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
@@ -425,9 +480,11 @@ export default function VMsTab({
                   className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all text-xs"
                 >
                   <option value="">Aucun projet spécifique</option>
-                  <option value="Portail de Supervision Multi-Agent">Portail de Supervision Multi-Agent</option>
-                  <option value="Gestionnaire de Bibliothèque ENSPY">Gestionnaire de Bibliothèque ENSPY</option>
-                  <option value="Contrôle Intelligent de Trafic">Contrôle Intelligent de Trafic</option>
+                  {projectOptions.map((title) => (
+                    <option key={title} value={title}>
+                      {title}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -512,6 +569,10 @@ export default function VMsTab({
             </form>
           </div>
         </div>
+      )}
+
+      {detailVmId != null && (
+        <EntityDetailModal kind="vm" id={detailVmId} onClose={() => setDetailVmId(null)} />
       )}
     </div>
   );

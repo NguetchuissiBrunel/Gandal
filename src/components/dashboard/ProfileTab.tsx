@@ -223,10 +223,10 @@ export default function ProfileTab({
                       <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
-                        required
+                        readOnly
                         value={matricule}
-                        onChange={(e) => setMatricule(e.target.value)}
-                        className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-600 transition-all text-xs"
+                        title="Non modifiable via l'API"
+                        className="w-full bg-gray-100 text-gray-600 border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 cursor-not-allowed text-xs"
                       />
                     </div>
                   </div>

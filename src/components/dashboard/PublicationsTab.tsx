@@ -12,8 +12,13 @@ import {
   FileCode,
   Check,
   AlertCircle,
-  FileCheck
+  FileCheck,
+  Trash2,
+  Pencil,
 } from 'lucide-react';
+import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
+import PublicationEditModal from '@/components/dashboard/PublicationEditModal';
+import type { PublicationRead } from '@/lib/apiClient';
 
 const Github = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -54,15 +59,21 @@ interface PublicationsTabProps {
   publications: Publication[];
   vms: Array<{ id: string; name: string }>;
   onSubmitPublication: (pub: Omit<Publication, 'id' | 'date' | 'views' | 'likes'>) => void;
+  onDeletePublication?: (id: string) => void | Promise<void>;
+  onUpdatePublication?: (updated: PublicationRead) => void;
 }
 
 export default function PublicationsTab({
   publications,
   vms,
-  onSubmitPublication
+  onSubmitPublication,
+  onDeletePublication,
+  onUpdatePublication,
 }: PublicationsTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<number | null>(null);
 
   const [pubTitle, setPubTitle] = useState('');
   const [pubCategory, setPubCategory] = useState('Système Multi-Agent');
@@ -274,10 +285,37 @@ export default function PublicationsTab({
                       {pub.likes} likes
                     </span>
                   </div>
-                  <span className="text-blue-600 cursor-pointer hover:underline inline-flex items-center gap-0.5">
-                    Voir détails
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </span>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setDetailId(parseInt(pub.id, 10))}
+                      className="text-blue-600 hover:underline inline-flex items-center gap-0.5 text-[11px] font-bold uppercase cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Détails API
+                    </button>
+                    {onUpdatePublication && (
+                      <button
+                        type="button"
+                        onClick={() => setEditId(parseInt(pub.id, 10))}
+                        className="text-slate-600 hover:text-blue-600 inline-flex items-center gap-0.5 text-[11px] font-bold uppercase cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Modifier
+                      </button>
+                    )}
+                    {onDeletePublication && (
+                      <button
+                        type="button"
+                        onClick={() => onDeletePublication(pub.id)}
+                        className="text-red-500 hover:text-red-700 inline-flex items-center gap-1 cursor-pointer"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -472,6 +510,25 @@ export default function PublicationsTab({
             </form>
           </div>
         </div>
+      )}
+
+      {detailId != null && (
+        <EntityDetailModal
+          kind="publication"
+          id={detailId}
+          onClose={() => setDetailId(null)}
+        />
+      )}
+
+      {editId != null && onUpdatePublication && (
+        <PublicationEditModal
+          publicationId={editId}
+          onClose={() => setEditId(null)}
+          onSaved={(updated) => {
+            onUpdatePublication(updated);
+            setEditId(null);
+          }}
+        />
       )}
     </div>
   );

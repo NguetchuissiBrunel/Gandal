@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { TeacherRead } from '@/lib/apiClient';
 import {
   Clock,
   CheckCircle2,
@@ -13,8 +14,10 @@ import {
   ChevronUp,
   PlusCircle,
   Server,
-  AlertCircle
+  AlertCircle,
+  Eye,
 } from 'lucide-react';
+import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 
 interface RequestItem {
   id: string;
@@ -27,41 +30,87 @@ interface RequestItem {
   adminFeedback?: string;
 }
 
+export type StudentRequestPayload = Omit<RequestItem, 'id' | 'status' | 'date'> & {
+  vmId?: string;
+  vmLabel?: string;
+  os?: string;
+  sizeRam?: number;
+  sizeRom?: number;
+  teacherId: number;
+};
+
 interface RequestsTabProps {
   requests: RequestItem[];
-  vms: Array<{ id: string; name: string }>;
-  onSubmitRequest: (request: Omit<RequestItem, 'id' | 'status' | 'date'>) => void;
+  vms: Array<{ id: string; name: string; os?: string; ram?: number; disk?: number }>;
+  teachers: TeacherRead[];
+  loadingTeachers?: boolean;
+  onSubmitRequest: (request: StudentRequestPayload) => void;
 }
 
 export default function RequestsTab({
   requests,
   vms,
+  teachers,
+  loadingTeachers = false,
   onSubmitRequest
 }: RequestsTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<'historique' | 'nouvelle'>('historique');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const [reqType, setReqType] = useState('Augmentation RAM');
+  const [reqType, setReqType] = useState('Demande de ressources');
   const [reqVmId, setReqVmId] = useState('');
   const [reqDetails, setReqDetails] = useState('');
   const [reqJustification, setReqJustification] = useState('');
+  const [reqOs, setReqOs] = useState('Ubuntu');
+  const [reqRam, setReqRam] = useState('4');
+  const [reqRom, setReqRom] = useState('40');
+  const [reqVmName, setReqVmName] = useState('');
+  const [teacherId, setTeacherId] = useState('');
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
+  const [detailRequestId, setDetailRequestId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (teachers.length > 0 && !teacherId) {
+      setTeacherId(String(teachers[0].id));
+    }
+  }, [teachers, teacherId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
     setFormSuccess(false);
 
-    if (!reqVmId) {
+    const isCreateVm = reqType === 'Création VM';
+    const isDeleteVm = reqType === 'Suppression VM';
+
+    if (!isCreateVm && !reqVmId) {
       setFormError('Veuillez sélectionner la machine virtuelle cible.');
       return;
     }
 
-    if (!reqDetails.trim()) {
+    if (isDeleteVm && (reqVmId === 'all-vms' || !reqVmId)) {
+      setFormError('Sélectionnez une VM précise pour une demande de suppression.');
+      return;
+    }
+
+    if (!isCreateVm && !reqDetails.trim()) {
       setFormError('Veuillez spécifier les détails des ressources demandées (ex: +4Go RAM).');
       return;
+    }
+
+    if (isCreateVm) {
+      if (!reqVmName.trim() || !/^[a-z0-9-]+$/.test(reqVmName.trim())) {
+        setFormError('Nom de VM requis (minuscules, chiffres et tirets uniquement).');
+        return;
+      }
+      const ram = parseInt(reqRam, 10);
+      const rom = parseInt(reqRom, 10);
+      if (!Number.isFinite(ram) || ram < 1 || !Number.isFinite(rom) || rom < 1) {
+        setFormError('Indiquez des tailles RAM et disque valides (en Go).');
+        return;
+      }
     }
 
     if (!reqJustification.trim() || reqJustification.trim().length < 15) {
@@ -69,18 +118,40 @@ export default function RequestsTab({
       return;
     }
 
+    if (loadingTeachers) {
+      setFormError('Chargement des responsables, veuillez patienter…');
+      return;
+    }
+
+    const selectedTeacherId = parseInt(teacherId, 10);
+    if (!selectedTeacherId || teachers.length === 0) {
+      setFormError('Veuillez sélectionner un enseignant responsable.');
+      return;
+    }
+
     const selectedVm = vms.find(v => v.id === reqVmId);
 
     onSubmitRequest({
       type: reqType,
-      vmName: selectedVm ? selectedVm.name : 'Toutes les VMs',
+      vmName: isCreateVm
+        ? reqVmName.trim()
+        : selectedVm
+          ? selectedVm.name
+          : 'Toutes les VMs',
       details: reqDetails,
-      justification: reqJustification
+      justification: reqJustification,
+      vmId: reqVmId && reqVmId !== 'all-vms' ? reqVmId : undefined,
+      vmLabel: isCreateVm ? reqVmName.trim() : undefined,
+      os: reqOs,
+      sizeRam: parseInt(reqRam, 10),
+      sizeRom: parseInt(reqRom, 10),
+      teacherId: selectedTeacherId,
     });
 
     setFormSuccess(true);
-    setReqType('Augmentation RAM');
+    setReqType('Demande de ressources');
     setReqVmId('');
+    setReqVmName('');
     setReqDetails('');
     setReqJustification('');
 
@@ -222,6 +293,15 @@ export default function RequestsTab({
                             <p className="font-semibold">{req.adminFeedback}</p>
                           </div>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => setDetailRequestId(parseInt(req.id, 10))}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-blue-600 hover:underline cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Fiche complète (API)
+                        </button>
                       </div>
                     )}
                   </div>
@@ -271,6 +351,28 @@ export default function RequestsTab({
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700 block">
+                Enseignant responsable <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={teacherId}
+                onChange={(e) => setTeacherId(e.target.value)}
+                disabled={loadingTeachers || teachers.length === 0}
+                className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all text-xs disabled:opacity-60"
+              >
+                {loadingTeachers && <option value="">Chargement…</option>}
+                {!loadingTeachers && teachers.length === 0 && (
+                  <option value="">Aucun enseignant disponible</option>
+                )}
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.username} — {t.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 block">
                 Type de ressource demandée <span className="text-red-500">*</span>
               </label>
               <select
@@ -278,15 +380,65 @@ export default function RequestsTab({
                 onChange={(e) => setReqType(e.target.value)}
                 className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all text-xs"
               >
-                <option value="Augmentation RAM">Augmentation Mémoire vive (RAM)</option>
-                <option value="Extension Stockage">Extension Stockage Disque SSD</option>
-                <option value="Allocation CPU additionnels">Allocation Cœurs de processeur (vCPU)</option>
-                <option value="Ouverture Port Réseau">Ouverture de port réseau (Firewall)</option>
-                <option value="Hébergement nom de domaine local">Nom de domaine local (.gandal.enspy)</option>
-                <option value="Autre requête administrative">Autre demande spécifique</option>
+                <option value="Création VM">Création d&apos;une nouvelle VM</option>
+                <option value="Suppression VM">Suppression d&apos;une VM</option>
+                <option value="Demande de ressources">Modification de ressources (RAM, disque, réseau…)</option>
               </select>
             </div>
 
+            {reqType === 'Création VM' && (
+              <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-700 block">
+                  Nom de la VM <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ex. mon-projet-vm"
+                  value={reqVmName}
+                  onChange={(e) => setReqVmName(e.target.value.toLowerCase())}
+                  className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 text-xs font-mono"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-700 block">OS <span className="text-red-500">*</span></label>
+                  <select
+                    value={reqOs}
+                    onChange={(e) => setReqOs(e.target.value)}
+                    className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 text-xs"
+                  >
+                    <option value="Ubuntu">Ubuntu</option>
+                    <option value="Debian">Debian</option>
+                    <option value="CentOS">CentOS</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-700 block">RAM (Go) <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={reqRam}
+                    onChange={(e) => setReqRam(e.target.value)}
+                    className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-700 block">Disque (Go) <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={reqRom}
+                    onChange={(e) => setReqRom(e.target.value)}
+                    className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-xl py-2.5 px-3.5 text-xs"
+                  />
+                </div>
+              </div>
+              </>
+            )}
+
+            {reqType !== 'Création VM' && (
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700 block">
                 Machine Virtuelle concernée <span className="text-red-500">*</span>
@@ -300,10 +452,14 @@ export default function RequestsTab({
                 {vms.map((vm) => (
                   <option key={vm.id} value={vm.id}>{vm.name}</option>
                 ))}
-                <option value="all-vms">Toutes mes machines (Projet Global)</option>
+                {reqType === 'Demande de ressources' && (
+                  <option value="all-vms">Toutes mes machines (Projet Global)</option>
+                )}
               </select>
             </div>
+            )}
 
+            {reqType !== 'Création VM' && (
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700 block">
                 Quantité / Détails demandés <span className="text-red-500">*</span>
@@ -317,6 +473,7 @@ export default function RequestsTab({
                 className="w-full bg-gray-50 text-gray-900 placeholder-gray-400 text-xs border border-gray-200 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
               />
             </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700 block">
@@ -340,6 +497,14 @@ export default function RequestsTab({
             </button>
           </form>
         </div>
+      )}
+
+      {detailRequestId != null && (
+        <EntityDetailModal
+          kind="request"
+          id={detailRequestId}
+          onClose={() => setDetailRequestId(null)}
+        />
       )}
     </div>
   );

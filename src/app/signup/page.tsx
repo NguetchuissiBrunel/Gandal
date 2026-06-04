@@ -5,9 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   Mail,
-  Lock,
-  Eye,
-  EyeOff,
   ArrowLeft,
   ArrowRight,
   User,
@@ -17,8 +14,10 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  FileText,
+  UserCheck,
 } from 'lucide-react';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient, type TeacherRead } from '@/lib/apiClient';
 
 /* ── Vis métallique 3D ── */
 const Screw = ({ className }: { className: string }) => (
@@ -86,26 +85,45 @@ export default function SignupPage() {
   const [level, setLevel] = useState('1');
   const [department, setDepartment] = useState('Informatique');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [justification, setJustification] = useState('');
+  const [teacherId, setTeacherId] = useState('');
+  const [teachers, setTeachers] = useState<TeacherRead[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(true);
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!confirmPassword) { setPasswordsMatch(null); return; }
-    setPasswordsMatch(password === confirmPassword);
-  }, [password, confirmPassword]);
+    const loadTeachers = async () => {
+      try {
+        const { items } = await apiClient.getTeachers();
+        setTeachers(items);
+        if (items.length > 0) {
+          setTeacherId(String(items[0].id));
+        }
+      } catch {
+        setTeachers([]);
+      } finally {
+        setLoadingTeachers(false);
+      }
+    };
+    loadTeachers();
+  }, []);
 
   /* ── Validation étape 1 → 2 ── */
   const handleNextStep = () => {
     setError('');
     if (!matricule.trim() || !username.trim()) {
       setError('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+    if (loadingTeachers) {
+      setError('Chargement des responsables, veuillez patienter…');
+      return;
+    }
+    if (teachers.length === 0) {
+      setError('Aucun enseignant référent disponible. Contactez l\'administration.');
       return;
     }
     setStep(2);
@@ -115,33 +133,37 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!email || !password || !confirmPassword) {
+    if (!email.trim() || !justification.trim()) {
       setError('Veuillez remplir tous les champs obligatoires.');
       return;
     }
-    if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Le mot de passe doit comporter au moins 6 caractères.');
+    const selectedTeacherId = parseInt(teacherId, 10);
+    if (!selectedTeacherId) {
+      setError('Veuillez sélectionner un responsable pédagogique.');
       return;
     }
     setLoading(true);
     try {
-      await apiClient.signupStudent({
-        username,
-        email,
-        password,
-        matricule,
-        level,
-        departement: department,
+      await apiClient.createAccountRequest({
+        object: "Demande d'inscription étudiant",
+        nom: username.trim(),
+        email: email.trim(),
+        matricule: matricule.trim(),
+        organisation: `${department} — Niveau ${level}`,
+        justification: justification.trim(),
+        teacher_id: selectedTeacherId,
+        content: JSON.stringify({
+          username: username.trim(),
+          level,
+          departement: department,
+          matricule: matricule.trim(),
+        }),
       });
       setLoading(false);
       setSuccess(true);
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || 'Une erreur est survenue lors de la création du compte.');
+      setError(err.message || 'Une erreur est survenue lors de l\'envoi de la demande.');
     }
   };
 
@@ -201,7 +223,7 @@ export default function SignupPage() {
             Inscription
           </h3>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center mb-5">
-            {step === 1 ? 'Étape 1 — Informations personnelles' : 'Étape 2 — Accès & sécurité'}
+            {step === 1 ? 'Étape 1 — Informations personnelles' : 'Étape 2 — Demande & validation'}
           </p>
 
           {/* Indicateur de progression */}
@@ -214,17 +236,18 @@ export default function SignupPage() {
                 <CheckCircle2 className="w-7 h-7 text-emerald-600" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-black text-emerald-600 uppercase tracking-wide">Compte Créé</h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Votre profil a été enregistré avec succès dans l'annuaire GANDAL.
+                <h3 className="text-lg font-black text-emerald-600 uppercase tracking-wide">Demande envoyée</h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xs mx-auto">
+                  Votre demande d&apos;inscription a été transmise à l&apos;administration.
+                  Après validation, vos identifiants de connexion vous seront communiqués par e-mail.
                 </p>
               </div>
               <div className="pt-4">
                 <Link
-                  href="/login"
+                  href="/"
                   className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
                 >
-                  Se connecter
+                  Retour à l&apos;accueil
                 </Link>
               </div>
             </div>
@@ -334,6 +357,30 @@ export default function SignupPage() {
             /* ────────────────── ÉTAPE 2 ────────────────── */
             <form onSubmit={handleSubmit} className="space-y-4">
 
+              {/* Responsable */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-600 block">Responsable pédagogique</label>
+                <div className="relative rounded-xl overflow-hidden group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <select
+                    required
+                    value={teacherId}
+                    onChange={(e) => setTeacherId(e.target.value)}
+                    disabled={teachers.length === 0}
+                    className="w-full bg-white text-slate-900 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-8 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer appearance-none"
+                  >
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.username} ({t.role})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400 text-xs">▼</div>
+                </div>
+              </div>
+
               {/* Adresse mail */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-600 block">Adresse mail</label>
@@ -352,63 +399,21 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Mot de passe */}
+              {/* Justification */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-600 block">Mot de passe</label>
+                <label className="text-xs font-bold text-slate-600 block">Justification</label>
                 <div className="relative rounded-xl overflow-hidden group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
-                    <Lock className="w-4 h-4" />
+                  <div className="absolute top-3 left-0 pl-3.5 flex items-start pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
+                    <FileText className="w-4 h-4" />
                   </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
+                  <textarea
                     required
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-12 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
+                    rows={3}
+                    placeholder="Décrivez brièvement votre projet ou besoin d'accès à GANDAL…"
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                    className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirmation */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-600 block">Confirmation</label>
-                  {passwordsMatch !== null && (
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1 ${passwordsMatch
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
-                      }`}>
-                      {passwordsMatch ? 'Match ✓' : 'Différent ✗'}
-                    </span>
-                  )}
-                </div>
-                <div className="relative rounded-xl overflow-hidden group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-12 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
                 </div>
               </div>
 
@@ -440,7 +445,7 @@ export default function SignupPage() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Inscription...
                     </>
-                  ) : "S'inscrire"}
+                  ) : 'Envoyer la demande'}
                 </button>
               </div>
 
