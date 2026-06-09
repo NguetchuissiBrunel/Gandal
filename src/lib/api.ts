@@ -21,6 +21,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/register-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Admin
+         * @description Crée un compte administrateur.
+         *
+         *     Endpoint de bootstrap : ne requiert pas d'authentification préalable, mais
+         *     exige la clé secrète SuperAdmin (`secret_key`) définie dans la configuration
+         *     (`SUPERADMIN_SECRET_KEY`).
+         */
+        post: operations["register_admin_api_v1_auth_register_admin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me": {
         parameters: {
             query?: never;
@@ -373,6 +397,82 @@ export interface paths {
         patch: operations["update_publication_api_v1_publications__publication_id__patch"];
         trace?: never;
     };
+    "/api/v1/dns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List All Dns
+         * @description Liste toutes les entrées DNS du système (admin uniquement).
+         */
+        get: operations["list_all_dns_api_v1_dns_get"];
+        put?: never;
+        /**
+         * Create Dns
+         * @description Crée une nouvelle entrée DNS pour une VM.
+         *
+         *     - Le hostname doit être un FQDN valide (ex: `api.projet.dc.enspy.cm`).
+         *     - Un hostname ne peut être attribué qu'à une seule VM à la fois.
+         *     - Seul le propriétaire de la VM (ou un admin) peut créer une entrée DNS.
+         */
+        post: operations["create_dns_api_v1_dns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dns/vms/{vm_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Dns For Vm
+         * @description Liste toutes les entrées DNS associées à une VM donnée.
+         */
+        get: operations["list_dns_for_vm_api_v1_dns_vms__vm_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dns/{dns_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dns
+         * @description Récupère une entrée DNS par son identifiant.
+         */
+        get: operations["get_dns_api_v1_dns__dns_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Dns
+         * @description Supprime une entrée DNS.
+         */
+        delete: operations["delete_dns_api_v1_dns__dns_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Dns
+         * @description Modifie le hostname d'une entrée DNS existante.
+         */
+        patch: operations["update_dns_api_v1_dns__dns_id__patch"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -411,6 +511,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AdminCreate
+         * @description Création d'un compte administrateur, protégée par la clé secrète SuperAdmin.
+         */
+        AdminCreate: {
+            /** Username */
+            username: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Password */
+            password: string;
+            /**
+             * Role
+             * @default Admin
+             * @enum {string}
+             */
+            role: "Admin" | "SuperAdmin";
+            /** Secret Key */
+            secret_key: string;
+        };
         /** ApproveBody */
         ApproveBody: {
             /**
@@ -418,6 +541,38 @@ export interface components {
              * @default
              */
             ssh_public_key: string;
+        };
+        /**
+         * DNSEntryCreate
+         * @description Payload pour créer une entrée DNS.
+         */
+        DNSEntryCreate: {
+            /** Hostname */
+            hostname: string;
+            /** Vm Id */
+            vm_id: number;
+        };
+        /**
+         * DNSEntryRead
+         * @description Réponse renvoyée au client, inclut les champs générés par la BDD.
+         */
+        DNSEntryRead: {
+            /** Hostname */
+            hostname: string;
+            /** Vm Id */
+            vm_id: number;
+            /** Id */
+            id: number;
+            /** Ip Address */
+            ip_address?: string | null;
+        };
+        /**
+         * DNSEntryUpdate
+         * @description Payload partiel pour modifier une entrée DNS.
+         */
+        DNSEntryUpdate: {
+            /** Hostname */
+            hostname?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -430,6 +585,17 @@ export interface components {
             username: string;
             /** Password */
             password: string;
+        };
+        /** PaginatedResponse[DNSEntryRead] */
+        PaginatedResponse_DNSEntryRead_: {
+            /** Items */
+            items: components["schemas"]["DNSEntryRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
         };
         /** PaginatedResponse[PublicationRead] */
         PaginatedResponse_PublicationRead_: {
@@ -910,6 +1076,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_admin_api_v1_auth_register_admin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherRead"];
                 };
             };
             /** @description Validation Error */
@@ -1925,6 +2124,200 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_all_dns_api_v1_dns_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_DNSEntryRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_dns_api_v1_dns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DNSEntryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSEntryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_dns_for_vm_api_v1_dns_vms__vm_id__get: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                vm_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_DNSEntryRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dns_api_v1_dns__dns_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dns_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSEntryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_dns_api_v1_dns__dns_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dns_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_dns_api_v1_dns__dns_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dns_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DNSEntryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSEntryRead"];
                 };
             };
             /** @description Validation Error */

@@ -30,23 +30,11 @@ export type RCreateVMRead = components['schemas']['RCreateVMRead'];
 export type RDeleteVMRead = components['schemas']['RDeleteVMRead'];
 export type RAccountRead = components['schemas']['RAccountRead'];
 export type PublicationRead = components['schemas']['PublicationRead'];
+export type AdminCreate = components['schemas']['AdminCreate'];
+export type DNSEntryRead = components['schemas']['DNSEntryRead'];
+export type DNSEntryCreate = components['schemas']['DNSEntryCreate'];
+export type DNSEntryUpdate = components['schemas']['DNSEntryUpdate'];
 
-/** Entrées DNS (OpenAPI — non présent dans api.ts généré localement). */
-export type DNSEntryRead = {
-  id: number;
-  hostname: string;
-  vm_id: number;
-  ip_address?: string | null;
-};
-
-export type DNSEntryCreate = {
-  hostname: string;
-  vm_id: number;
-};
-
-export type DNSEntryUpdate = {
-  hostname?: string | null;
-};
 
 class ApiClient {
   private get token(): string | null {
@@ -138,6 +126,18 @@ class ApiClient {
 
   async getMe(): Promise<StudentRead | TeacherRead> {
     return this.request<StudentRead | TeacherRead>('/api/v1/auth/me');
+  }
+
+  /**
+   * Crée un compte administrateur (bootstrap).
+   * Requiert la clé secrète SUPERADMIN_SECRET_KEY configurée côté backend.
+   * Ne nécessite PAS d'authentification préalable.
+   */
+  async registerAdmin(data: AdminCreate): Promise<TeacherRead> {
+    return this.request<TeacherRead>('/api/v1/auth/register-admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // --- Users / Students ---
