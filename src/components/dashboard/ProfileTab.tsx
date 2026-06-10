@@ -11,10 +11,15 @@ import {
   Bell,
   Award,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Pencil,
 } from 'lucide-react';
+import UserAvatar from '@/components/ui/UserAvatar';
+import AvatarPickerModal from '@/components/ui/AvatarPickerModal';
+import { useUserAvatar } from '@/hooks/useUserAvatar';
 
 interface StudentInfo {
+  id: number;
   username: string;
   matricule: string;
   level: string;
@@ -29,10 +34,6 @@ interface ProfileTabProps {
   onUpdateProfile: (info: StudentInfo) => void;
 }
 
-const AVATARS = [
-  '👩‍💻', '👨‍💻', '🚀', '🧠', '⚙️', '🤖', '🎓', '🌐'
-];
-
 export default function ProfileTab({
   studentInfo,
   vmsCount,
@@ -45,7 +46,11 @@ export default function ProfileTab({
   const [matricule, setMatricule] = useState(studentInfo.matricule);
   const [level, setLevel] = useState(studentInfo.level);
   const [department, setDepartment] = useState(studentInfo.department);
-  const [selectedAvatar, setSelectedAvatar] = useState('👨‍💻');
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const { avatarId, selectAvatar, clearAvatar } = useUserAvatar(
+    studentInfo.id,
+    studentInfo.username,
+  );
 
   const [notifVMState, setNotifVMState] = useState(true);
   const [notifRequests, setNotifRequests] = useState(true);
@@ -69,11 +74,12 @@ export default function ProfileTab({
     }
 
     onUpdateProfile({
+      id: studentInfo.id,
       username,
       email,
       matricule,
       level,
-      department
+      department,
     });
 
     setIsEditing(false);
@@ -98,29 +104,24 @@ export default function ProfileTab({
         {/* Left Column */}
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm text-center space-y-4">
-            <div className="relative w-20 h-20 rounded-3xl bg-blue-50 border border-blue-100 flex items-center justify-center text-4xl mx-auto shadow-sm">
-              <span>{selectedAvatar}</span>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] cursor-pointer" title="Changer l'icône">
-                ✏️
-              </div>
+            <div className="relative mx-auto w-fit">
+              <UserAvatar
+                userId={studentInfo.id}
+                username={studentInfo.username}
+                size="lg"
+                shape="rounded"
+                variant="student"
+                className="shadow-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setAvatarPickerOpen(true)}
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-slate-900 hover:bg-black text-white rounded-full flex items-center justify-center shadow-md cursor-pointer transition-colors"
+                title="Changer l'avatar"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
             </div>
-
-            {isEditing && (
-              <div className="flex justify-center gap-1.5 flex-wrap p-2.5 bg-gray-50 rounded-2xl border border-gray-100">
-                {AVATARS.map((av) => (
-                  <button
-                    key={av}
-                    onClick={() => setSelectedAvatar(av)}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-base border transition-all ${selectedAvatar === av
-                        ? 'border-blue-600 bg-white shadow-sm scale-110'
-                        : 'border-transparent hover:bg-gray-200/50'
-                      }`}
-                  >
-                    {av}
-                  </button>
-                ))}
-              </div>
-            )}
 
             <div>
               <h2 className="text-base font-black text-gray-900 truncate">
@@ -374,6 +375,22 @@ export default function ProfileTab({
           </div>
         </div>
       </div>
+      {avatarPickerOpen && (
+        <AvatarPickerModal
+          userId={studentInfo.id}
+          username={studentInfo.username}
+          selectedId={avatarId}
+          onSelect={(id) => {
+            selectAvatar(id);
+            setAvatarPickerOpen(false);
+          }}
+          onUseInitials={() => {
+            clearAvatar();
+            setAvatarPickerOpen(false);
+          }}
+          onClose={() => setAvatarPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }

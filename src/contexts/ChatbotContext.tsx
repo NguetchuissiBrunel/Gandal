@@ -11,7 +11,7 @@ interface ChatbotContextType {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   position: Position;
-  setPosition: (position: Position) => void;
+  setPosition: React.Dispatch<React.SetStateAction<Position>>;
   isMinimized: boolean;
   setIsMinimized: (minimized: boolean) => void;
 }

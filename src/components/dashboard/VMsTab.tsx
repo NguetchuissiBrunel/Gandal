@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useFeedback } from '@/contexts/FeedbackContext';
 import {
   Server,
   Play,
@@ -54,6 +55,7 @@ export default function VMsTab({
   onDeleteVM,
   onUpdateVMStatus
 }: VMsTabProps) {
+  const { confirm } = useFeedback();
   const [filter, setFilter] = useState<'Tout' | 'Active' | 'Arrêtée' | 'En cours'>('Tout');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -363,10 +365,14 @@ export default function VMsTab({
 
                   {!requestsOnly && onDeleteVM && (
                   <button
-                    onClick={() => {
-                      if (confirm(`Êtes-vous sûr de vouloir supprimer la machine virtuelle ${vm.name} ?`)) {
-                        onDeleteVM(vm.id);
-                      }
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: 'Supprimer la VM',
+                        message: `Supprimer définitivement « ${vm.name} » ?`,
+                        confirmLabel: 'Supprimer',
+                        variant: 'danger',
+                      });
+                      if (ok) onDeleteVM(vm.id);
                     }}
                     className="p-2 bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 rounded-xl text-gray-600 hover:text-red-600 transition-colors"
                     title="Supprimer la VM"

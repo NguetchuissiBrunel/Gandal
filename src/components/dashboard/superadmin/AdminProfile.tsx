@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, Mail, Shield, School, Hash, User, Lock, Key, CheckCircle, Save } from 'lucide-react';
+import { Mail, Shield, School, Hash, User, CheckCircle, Save, Pencil } from 'lucide-react';
 import ScrewCard from '@/components/dashboard/superadmin/ScrewCard';
+import UserAvatar from '@/components/ui/UserAvatar';
+import AvatarPickerModal from '@/components/ui/AvatarPickerModal';
+import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { apiClient } from '@/lib/apiClient';
 
 export default function AdminProfile() {
@@ -11,13 +14,12 @@ export default function AdminProfile() {
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
 
-  // Changement de mot de passe
-  const [changePassword, setChangePassword] = useState(false);
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [showOld, setShowOld] = useState(false);
-  const [showNew, setShowNew] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { avatarId, selectAvatar, clearAvatar } = useUserAvatar(
+    profile?.id ?? 0,
+    profile?.username ?? '',
+  );
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -79,8 +81,23 @@ export default function AdminProfile() {
 
         {/* Grand Avatar & Rôle */}
         <div className="flex flex-col sm:flex-row items-center gap-5 bg-gradient-to-r from-slate-50 to-indigo-50/30 p-5 rounded-2xl border border-slate-100">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center text-3xl font-black shrink-0 shadow-lg ring-4 ring-indigo-50">
-            SA
+          <div className="relative shrink-0">
+            {profile && (
+              <UserAvatar
+                userId={profile.id}
+                username={profile.username}
+                size="lg"
+                variant="admin"
+              />
+            )}
+            <button
+              type="button"
+              onClick={() => setAvatarPickerOpen(true)}
+              className="absolute -bottom-1 -right-1 w-7 h-7 bg-slate-900 hover:bg-black text-white rounded-full flex items-center justify-center shadow-md cursor-pointer"
+              title="Changer l'avatar"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
           </div>
           <div className="text-center sm:text-left space-y-1.5">
             <p className="font-black text-slate-950 text-base leading-tight">{nom}</p>
@@ -180,6 +197,23 @@ export default function AdminProfile() {
 
         </form>
       </ScrewCard>
+      {avatarPickerOpen && profile && (
+        <AvatarPickerModal
+          userId={profile.id}
+          username={profile.username}
+          selectedId={avatarId}
+          variant="admin"
+          onSelect={(id) => {
+            selectAvatar(id);
+            setAvatarPickerOpen(false);
+          }}
+          onUseInitials={() => {
+            clearAvatar();
+            setAvatarPickerOpen(false);
+          }}
+          onClose={() => setAvatarPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }

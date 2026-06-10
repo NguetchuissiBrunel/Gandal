@@ -3,6 +3,7 @@ import "./globals.css";
 import "../styles/chatbot.css";
 import FloatingChatbot from "../components/FloatingChatbot";
 import { ChatbotProvider } from "../contexts/ChatbotContext";
+import { FeedbackProvider } from "../contexts/FeedbackContext";
 
 export const metadata: Metadata = {
   title: "GANDAL — Plateforme Data Center ENSPY",
@@ -40,10 +41,12 @@ export default function RootLayout({
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col font-sans">
-        <ChatbotProvider>
-          {children}
-          <FloatingChatbot />
-        </ChatbotProvider>
+        <FeedbackProvider>
+          <ChatbotProvider>
+            {children}
+            <FloatingChatbot />
+          </ChatbotProvider>
+        </FeedbackProvider>
       </body>
     </html>
   );

@@ -14,10 +14,10 @@ import {
   ChevronUp,
   PlusCircle,
   Server,
-  AlertCircle,
   Eye,
 } from 'lucide-react';
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
+import FeedbackBanner from '@/components/ui/FeedbackBanner';
 
 interface RequestItem {
   id: string;
@@ -76,6 +76,14 @@ export default function RequestsTab({
       setTeacherId(String(teachers[0].id));
     }
   }, [teachers, teacherId]);
+
+  useEffect(() => {
+    if (!loadingTeachers) {
+      setFormError((prev) =>
+        prev === 'Chargement des responsables, veuillez patienter…' ? '' : prev,
+      );
+    }
+  }, [loadingTeachers]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,19 +343,17 @@ export default function RequestsTab({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {formSuccess && (
-              <div className="flex items-center gap-2.5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-700 font-bold animate-fade-in">
-                <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
-                <p>Votre requête a été envoyée avec succès à l'administration GANDAL.</p>
-              </div>
-            )}
-
-            {formError && (
-              <div className="flex items-start gap-2.5 p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-bold">
-                <AlertCircle className="w-5 h-5 shrink-0 text-red-500 mt-0.5" />
-                <p>{formError}</p>
-              </div>
-            )}
+            <FeedbackBanner
+              error={formError}
+              success={
+                formSuccess
+                  ? "Votre requête a été envoyée avec succès à l'administration GANDAL."
+                  : ''
+              }
+              onDismissError={() => setFormError('')}
+              onDismissSuccess={() => setFormSuccess(false)}
+              successAutoHideMs={1800}
+            />
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700 block">

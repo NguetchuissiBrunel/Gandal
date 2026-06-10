@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Mail, Briefcase, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Briefcase, Lock, Pencil } from 'lucide-react';
+import UserAvatar from '@/components/ui/UserAvatar';
+import AvatarPickerModal from '@/components/ui/AvatarPickerModal';
+import { useUserAvatar } from '@/hooks/useUserAvatar';
 import Screw3D from '@/components/Screw3D';
 import type { TeacherProfile, ShowToastFn } from './types';
 
@@ -21,7 +24,8 @@ interface ProfileTabProps {
 export default function ProfileTab({ profile, onSave, showToast, stats }: ProfileTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<TeacherProfile>(profile);
-  const [showPassword, setShowPassword] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const { avatarId, selectAvatar, clearAvatar } = useUserAvatar(profile.id, profile.username);
 
   const handleEdit = () => {
     setDraft({ ...profile, password: '' });
@@ -31,14 +35,12 @@ export default function ProfileTab({ profile, onSave, showToast, stats }: Profil
   const handleCancel = () => {
     setDraft(profile);
     setIsEditing(false);
-    setShowPassword(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(draft);
     setIsEditing(false);
-    setShowPassword(false);
     showToast('Profil mis à jour avec succès.', 'success');
   };
 
@@ -97,6 +99,31 @@ export default function ProfileTab({ profile, onSave, showToast, stats }: Profil
 
         {/* ── MODE LECTURE ── */}
         {!isEditing && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 pb-2">
+              <div className="relative">
+                <UserAvatar
+                  userId={profile.id}
+                  username={profile.username}
+                  size="lg"
+                  shape="rounded"
+                  variant="teacher"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAvatarPickerOpen(true)}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 bg-slate-900 hover:bg-black text-white rounded-full flex items-center justify-center shadow-md cursor-pointer"
+                  title="Changer l'avatar"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div>
+                <p className="text-sm font-black text-black">{profile.username}</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase">{profile.role}</p>
+              </div>
+            </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             {/* Nom d'utilisateur */}
@@ -126,6 +153,7 @@ export default function ProfileTab({ profile, onSave, showToast, stats }: Profil
               label="Mot de passe"
               value="••••••••••••"
             />
+          </div>
           </div>
         )}
 
@@ -201,6 +229,24 @@ export default function ProfileTab({ profile, onSave, showToast, stats }: Profil
           </div>
         </div>
       </div>
+
+      {avatarPickerOpen && (
+        <AvatarPickerModal
+          userId={profile.id}
+          username={profile.username}
+          selectedId={avatarId}
+          variant="teacher"
+          onSelect={(id) => {
+            selectAvatar(id);
+            setAvatarPickerOpen(false);
+          }}
+          onUseInitials={() => {
+            clearAvatar();
+            setAvatarPickerOpen(false);
+          }}
+          onClose={() => setAvatarPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }

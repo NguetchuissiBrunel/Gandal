@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Eye } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, Users, Server, Trash2 } from 'lucide-react';
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import ScrewCard from '@/components/dashboard/superadmin/ScrewCard';
+import EmptyState from '@/components/ui/EmptyState';
 import CredentialsModal from '@/components/dashboard/CredentialsModal';
 import { apiClient } from '@/lib/apiClient';
 import {
@@ -226,7 +227,11 @@ export default function RequestsPanel() {
       {activeTab === 'inscriptions' && (
         <div className="space-y-4">
           {inscriptions.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-12">Aucune demande d&apos;inscription.</p>
+            <EmptyState
+              icon={Users}
+              title="Aucune demande d'inscription"
+              description="Les demandes de création de compte étudiant apparaîtront ici dès qu'elles seront soumises."
+            />
           ) : (
             inscriptions.map((req) => (
               <ScrewCard key={req.id} className="p-6">
@@ -286,7 +291,14 @@ export default function RequestsPanel() {
 
       {activeTab === 'création' && (
         <div className="space-y-4">
-          {creation.map((req) => (
+          {creation.length === 0 ? (
+            <EmptyState
+              icon={Server}
+              title="Aucune demande de création VM"
+              description="Les étudiants peuvent soumettre une requête de déploiement depuis leur espace. Elle s'affichera ici pour validation."
+            />
+          ) : (
+            creation.map((req) => (
             <ScrewCard key={req.id} className="p-6">
               <div className="flex items-start justify-between gap-4 mb-4 pt-2">
                 <div>
@@ -339,13 +351,21 @@ export default function RequestsPanel() {
                 </div>
               )}
             </ScrewCard>
-          ))}
+            ))
+          )}
         </div>
       )}
 
       {activeTab === 'suppression' && (
         <div className="space-y-4">
-          {suppression.map((req) => (
+          {suppression.length === 0 ? (
+            <EmptyState
+              icon={Trash2}
+              title="Aucune demande de suppression VM"
+              description="Lorsqu'un étudiant demande la suppression d'une machine virtuelle, la requête apparaîtra ici."
+            />
+          ) : (
+            suppression.map((req) => (
             <ScrewCard key={req.id} className="p-6">
               <div className="flex items-start justify-between gap-4 mb-4 pt-2">
                 <div>
@@ -384,7 +404,8 @@ export default function RequestsPanel() {
                 </div>
               )}
             </ScrewCard>
-          ))}
+            ))
+          )}
         </div>
       )}
 

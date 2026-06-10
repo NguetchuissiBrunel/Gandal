@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Loader2, Save, AlertCircle } from 'lucide-react';
+import { X, Loader2, Save } from 'lucide-react';
+import FeedbackBanner from '@/components/ui/FeedbackBanner';
 import { apiClient, type PublicationRead } from '@/lib/apiClient';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 interface PublicationEditModalProps {
   publicationId: number | null;
@@ -41,7 +43,7 @@ export default function PublicationEditModal({
         setStatus(pub.status);
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Impossible de charger la publication');
+          setError(getApiErrorMessage(err, 'Impossible de charger la publication'));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -73,7 +75,7 @@ export default function PublicationEditModal({
       onSaved(updated);
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Mise à jour impossible');
+      setError(getApiErrorMessage(err, 'Mise à jour impossible'));
     } finally {
       setSubmitting(false);
     }
@@ -99,12 +101,7 @@ export default function PublicationEditModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
-            {error && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
+            <FeedbackBanner error={error} onDismissError={() => setError('')} />
 
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Titre *</label>

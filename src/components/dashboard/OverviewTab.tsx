@@ -1,5 +1,6 @@
 'use client';
 
+import UserAvatar from '@/components/ui/UserAvatar';
 import {
   Server,
   Cpu,
@@ -15,6 +16,7 @@ import {
 
 interface OverviewTabProps {
   studentInfo: {
+    id: number;
     username: string;
     matricule: string;
     level: string;
@@ -83,28 +85,43 @@ export default function OverviewTab({
     <div className="space-y-8 animate-fade-in">
 
       {/* Greetings Panel */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-955 text-white rounded-3xl p-6 md:p-8 shadow-md">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-10 w-60 h-60 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-md border border-slate-700/50">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              Session Étudiant Active
+          <div className="flex items-start gap-4 flex-1 min-w-0">
+            <UserAvatar
+              userId={studentInfo.id}
+              username={studentInfo.username}
+              size="lg"
+              shape="rounded"
+              variant="student"
+              border
+              className="hidden sm:flex"
+            />
+            <div className="space-y-2 min-w-0">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase bg-emerald-500/25 text-emerald-200 border border-emerald-400/40">
+                Session Étudiant Active
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-none">
+                Bonjour, <span className="text-emerald-300">{studentInfo.username}</span> !
+              </h1>
+              <p className="text-slate-300 text-xs md:text-sm font-medium max-w-xl leading-relaxed">
+                Bienvenue sur votre console GANDAL. Supervisez vos machines virtuelles, gérez vos demandes d&apos;extension de ressources et préparez la passation de vos projets académiques.
+              </p>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-none">
-              Bonjour, <span className="text-emerald-400">{studentInfo.username}</span> !
-            </h1>
-            <p className="text-slate-300 text-xs md:text-sm font-medium max-w-xl leading-relaxed">
-              Bienvenue sur votre console GANDAL. Supervisez vos machines virtuelles, gérez vos demandes d'extension de ressources et préparez la passation de vos projets académiques.
-            </p>
           </div>
 
-          <div className="flex flex-col text-left md:text-right bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm self-stretch md:self-auto min-w-[200px]">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Classe & Promotion</span>
+          <div className="flex flex-col text-left md:text-right bg-slate-800/90 border border-slate-600/80 rounded-2xl p-4 w-full md:w-auto md:min-w-[220px] shadow-inner">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Classe &amp; Promotion</span>
             <span className="text-sm font-bold text-white mt-1">{studentInfo.department}</span>
-            <span className="text-xs text-emerald-400 font-bold mt-0.5">Niveau {studentInfo.level} • Promotion GI27</span>
-            <span className="text-[10px] font-semibold text-slate-400 mt-2">Matricule : {studentInfo.matricule}</span>
+            <span className="text-xs text-emerald-300 font-bold mt-0.5">
+              Niveau {studentInfo.level} • Promotion GI27
+            </span>
+            <span className="text-[10px] font-semibold text-slate-400 mt-2">
+              Matricule : {studentInfo.matricule}
+            </span>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Server, Cpu, HardDrive, Trash2, PauseCircle, PlayCircle, Eye } from 'lucide-react';
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import ScrewCard, { Screw } from '@/components/dashboard/superadmin/ScrewCard';
+import EmptyState from '@/components/ui/EmptyState';
 import { apiClient } from '@/lib/apiClient';
 
 interface VM {
@@ -209,6 +210,13 @@ export default function VMMonitoring() {
           </span>
         </div>
 
+        {vms.length === 0 ? (
+          <EmptyState
+            icon={Server}
+            title="Aucune machine virtuelle"
+            description="Les VMs déployées sur le cluster Proxmox apparaîtront ici après validation des requêtes étudiantes ou création directe."
+          />
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {vms.map(vm => (
             <div
@@ -303,6 +311,7 @@ export default function VMMonitoring() {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {detailVmId != null && (

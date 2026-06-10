@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import {
   UserPlus,
   Mail,
-  Lock,
   User,
   Hash,
   GraduationCap,
@@ -19,6 +18,10 @@ import {
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import ScrewCard from '@/components/dashboard/superadmin/ScrewCard';
 import { apiClient, type StudentRead } from '@/lib/apiClient';
+import FeedbackBanner from '@/components/ui/FeedbackBanner';
+import PasswordInput from '@/components/ui/PasswordInput';
+import { useFeedback } from '@/contexts/FeedbackContext';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 const DEPARTMENTS = [
   'Informatique',
@@ -32,6 +35,7 @@ const DEPARTMENTS = [
 ];
 
 export default function StudentsPanel() {
+  const { confirm } = useFeedback();
   const [students, setStudents] = useState<StudentRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -59,8 +63,10 @@ export default function StudentsPanel() {
       const { items } = await apiClient.getStudents({ size: 100 });
       setStudents(items);
       setError('');
+      setSuccess('');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
+      setSuccess('');
     } finally {
       setLoading(false);
     }
@@ -92,10 +98,11 @@ export default function StudentsPanel() {
       setEmail('');
       setPassword('');
       setMatricule('');
-      setSuccess('Étudiant créé via POST /api/v1/users/students');
+      setSuccess('Étudiant créé avec succès.');
       await loadStudents();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Création impossible');
+      setError(getApiErrorMessage(err, 'Création impossible'));
+      setSuccess('');
     } finally {
       setSubmitting(false);
     }
@@ -121,25 +128,32 @@ export default function StudentsPanel() {
         departement: editForm.departement,
       });
       setEditingId(null);
-      setSuccess('Étudiant mis à jour');
+      setSuccess('Étudiant mis à jour.');
       await loadStudents();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Mise à jour impossible');
+      setError(getApiErrorMessage(err, 'Mise à jour impossible'));
+      setSuccess('');
     }
   };
 
   const handleDelete = async (s: StudentRead) => {
-    if (!confirm(`Supprimer le compte étudiant « ${s.username} » ? Action irréversible.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Supprimer le compte étudiant',
+      message: `Supprimer définitivement « ${s.username} » ? Cette action est irréversible.`,
+      confirmLabel: 'Supprimer',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setError('');
+    setSuccess('');
     try {
       await apiClient.deleteStudent(s.id);
       if (editingId === s.id) setEditingId(null);
-      setSuccess('Étudiant supprimé');
+      setSuccess('Étudiant supprimé.');
       await loadStudents();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Suppression impossible');
+      setError(getApiErrorMessage(err, 'Suppression impossible'));
+      setSuccess('');
     }
   };
 
@@ -189,18 +203,15 @@ export default function StudentsPanel() {
               className={inputClass}
             />
           </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Mot de passe"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-            />
-          </div>
+          <PasswordInput
+            required
+            minLength={6}
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            inputClassName={inputClass.replace('pr-4', 'pr-11')}
+            autoComplete="new-password"
+          />
           <div className="relative">
             <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -258,17 +269,12 @@ export default function StudentsPanel() {
         </form>
       </ScrewCard>
 
-      {(error || success) && (
-        <p
-          className={`text-xs font-semibold rounded-lg px-3 py-2 border ${
-            error
-              ? 'text-red-600 bg-red-50 border-red-200'
-              : 'text-emerald-700 bg-emerald-50 border-emerald-200'
-          }`}
-        >
-          {error || success}
-        </p>
-      )}
+      <FeedbackBanner
+        error={error}
+        success={success}
+        onDismissError={() => setError('')}
+        onDismissSuccess={() => setSuccess('')}
+      />
 
       <ScrewCard className="p-8">
         <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4">

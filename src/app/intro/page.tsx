@@ -9,6 +9,7 @@ export default function IntroRoute() {
   const handleComplete = () => {
     // Set the sessionStorage flag so they land on home properly
     sessionStorage.setItem('gandal_intro_seen', 'true');
+    window.dispatchEvent(new Event('gandal-intro-done'));
     router.push('/');
   };
 

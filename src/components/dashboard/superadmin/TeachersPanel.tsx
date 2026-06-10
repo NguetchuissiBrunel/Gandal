@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import {
   UserPlus,
   Mail,
-  Lock,
   User,
   Shield,
   Loader2,
@@ -17,6 +16,10 @@ import {
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import ScrewCard from '@/components/dashboard/superadmin/ScrewCard';
 import { apiClient, type TeacherRead } from '@/lib/apiClient';
+import FeedbackBanner from '@/components/ui/FeedbackBanner';
+import PasswordInput from '@/components/ui/PasswordInput';
+import { useFeedback } from '@/contexts/FeedbackContext';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 const ROLES = [
   { value: 'teacher', label: 'Enseignant (validation inscriptions)' },
@@ -25,6 +28,7 @@ const ROLES = [
 ];
 
 export default function TeachersPanel() {
+  const { confirm } = useFeedback();
   const [teachers, setTeachers] = useState<TeacherRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -49,8 +53,10 @@ export default function TeachersPanel() {
       const { items } = await apiClient.getTeachers({ size: 100 });
       setTeachers(items);
       setError('');
+      setSuccess('');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
+      setSuccess('');
     } finally {
       setLoading(false);
     }
@@ -79,10 +85,11 @@ export default function TeachersPanel() {
       setUsername('');
       setEmail('');
       setPassword('');
-      setSuccess('Enseignant créé via POST /api/v1/users/teachers');
+      setSuccess('Enseignant créé avec succès.');
       await loadTeachers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Création impossible');
+      setError(getApiErrorMessage(err, 'Création impossible'));
+      setSuccess('');
     } finally {
       setSubmitting(false);
     }
@@ -105,25 +112,32 @@ export default function TeachersPanel() {
         role: editForm.role,
       });
       setEditingId(null);
-      setSuccess('Enseignant mis à jour');
+      setSuccess('Enseignant mis à jour.');
       await loadTeachers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Mise à jour impossible');
+      setError(getApiErrorMessage(err, 'Mise à jour impossible'));
+      setSuccess('');
     }
   };
 
   const handleDelete = async (t: TeacherRead) => {
-    if (!confirm(`Supprimer le compte « ${t.username} » (${t.role}) ? Action irréversible.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Supprimer le compte',
+      message: `Supprimer définitivement « ${t.username} » (${t.role}) ? Action irréversible.`,
+      confirmLabel: 'Supprimer',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setError('');
+    setSuccess('');
     try {
       await apiClient.deleteTeacher(t.id);
       if (editingId === t.id) setEditingId(null);
-      setSuccess('Enseignant supprimé');
+      setSuccess('Enseignant supprimé.');
       await loadTeachers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Suppression impossible');
+      setError(getApiErrorMessage(err, 'Suppression impossible'));
+      setSuccess('');
     }
   };
 
@@ -172,18 +186,15 @@ export default function TeachersPanel() {
               className={inputClass}
             />
           </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Mot de passe initial"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-            />
-          </div>
+          <PasswordInput
+            required
+            minLength={6}
+            placeholder="Mot de passe initial"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            inputClassName={inputClass.replace('pr-4', 'pr-11')}
+            autoComplete="new-password"
+          />
           <div className="relative">
             <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <select
@@ -214,17 +225,12 @@ export default function TeachersPanel() {
         </form>
       </ScrewCard>
 
-      {(error || success) && (
-        <p
-          className={`text-xs font-semibold rounded-lg px-3 py-2 border ${
-            error
-              ? 'text-red-600 bg-red-50 border-red-200'
-              : 'text-emerald-700 bg-emerald-50 border-emerald-200'
-          }`}
-        >
-          {error || success}
-        </p>
-      )}
+      <FeedbackBanner
+        error={error}
+        success={success}
+        onDismissError={() => setError('')}
+        onDismissSuccess={() => setSuccess('')}
+      />
 
       <ScrewCard className="p-8">
         <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4">

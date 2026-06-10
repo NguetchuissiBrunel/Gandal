@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { CircleUser, Lock, Eye, EyeOff, ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
+import { CircleUser, ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
+import PasswordInput from '@/components/ui/PasswordInput';
 import { apiClient } from '@/lib/apiClient';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 const Screw = ({ className }: { className: string }) => (
   <div className={`absolute w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 via-slate-200 to-slate-500 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_1px_3px_rgba(0,0,0,0.2)] flex items-center justify-center border border-slate-300 select-none z-10 ${className}`}>
@@ -21,7 +23,6 @@ const Screw = ({ className }: { className: string }) => (
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -43,7 +44,7 @@ export default function LoginPage() {
       setSuccess(true);
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || 'Nom d\'utilisateur ou mot de passe incorrect.');
+      setError(getApiErrorMessage(err, 'Nom d\'utilisateur ou mot de passe incorrect.'));
     }
   };
 
@@ -134,28 +135,16 @@ export default function LoginPage() {
                 <label htmlFor="login-password" className="text-xs font-bold text-slate-600 block">
                   Mot de passe
                 </label>
-                <div className="relative rounded-xl overflow-hidden group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    autoComplete="current-password"
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-12 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-sans"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
-                  </button>
-                </div>
+                <PasswordInput
+                  id="login-password"
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  inputClassName="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-11 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-sans"
+                  showLockIcon
+                />
               </div>
 
               {/* Message d'erreur */}

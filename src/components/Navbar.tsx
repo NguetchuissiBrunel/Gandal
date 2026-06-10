@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FolderGit, LogIn, UserPlus, Menu, X, LayoutDashboard, LogOut } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
-import { getDashboardPath, getRoleLabel, getUserInitials } from '@/lib/authUtils';
+import { getDashboardPath, getRoleLabel, isAdminTeacher } from '@/lib/authUtils';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useAuthSession } from '@/hooks/useAuthSession';
 
 interface NavbarProps {
@@ -46,8 +47,14 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
     : 'bg-white/90 border-slate-200/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] py-3 px-4 sm:py-4 sm:px-8';
 
   const dashboardHref = user ? getDashboardPath(user) : '/dashboard';
-  const initials = user ? getUserInitials(user.username) : '';
   const roleLabel = user ? getRoleLabel(user) : '';
+  const avatarVariant = user
+    ? user.type === 'student'
+      ? 'student'
+      : isAdminTeacher(user)
+        ? 'admin'
+        : 'teacher'
+    : 'neutral';
 
   const authActionsDesktop = authLoading ? (
     <div className="h-9 w-28 rounded-xl bg-slate-100 animate-pulse" />
@@ -57,9 +64,13 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
         href={dashboardHref}
         className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-blue-200 transition-all duration-200 group"
       >
-        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 group-hover:scale-105 transition-transform">
-          {initials}
-        </div>
+        <UserAvatar
+          userId={user.id}
+          username={user.username}
+          size="sm"
+          variant={avatarVariant}
+          className="group-hover:scale-105 transition-transform"
+        />
         <div className="flex flex-col min-w-0 max-w-[140px]">
           <span className="text-xs font-bold text-slate-900 truncate leading-tight">
             {user.username}
@@ -110,9 +121,12 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
         onClick={() => setIsMobileMenuOpen(false)}
         className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100"
       >
-        <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shrink-0">
-          {initials}
-        </div>
+        <UserAvatar
+          userId={user.id}
+          username={user.username}
+          size="md"
+          variant={avatarVariant}
+        />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold text-slate-900 truncate">{user.username}</p>
           <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{roleLabel}</p>

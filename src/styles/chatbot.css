@@ -23,8 +23,9 @@
   }
 }
 
-.chatbot-open-animation {
-  animation: chatbot-open 0.3s ease-out;
+.chatbot-panel-enter {
+  animation: chatbot-open 0.25s ease-out;
+  transform-origin: bottom right;
 }
 
 /* Pulse animation pour l'icône */

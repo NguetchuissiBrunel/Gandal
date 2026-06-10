@@ -1,10 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Globe, Plus, Trash2, Edit2, Check, X, AlertCircle, Loader2, Eye } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Globe, Plus, Trash2, Edit2, Check, X, Loader2, Eye } from 'lucide-react';
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import Screw3D from '@/components/Screw3D';
+import FeedbackBanner from '@/components/ui/FeedbackBanner';
+import EmptyState from '@/components/ui/EmptyState';
+import Pagination from '@/components/ui/Pagination';
 import { apiClient, type DNSEntryRead } from '@/lib/apiClient';
+import { useFeedback } from '@/contexts/FeedbackContext';
+import { getApiErrorMessage } from '@/lib/apiError';
+
+const PAGE_SIZE = 10;
 
 export interface DNSTabVm {
   id: string;
@@ -28,9 +35,22 @@ function entryStatus(entry: DNSEntryRead): 'active' | 'pending' | 'error' {
 }
 
 export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
-  const [records, setRecords] = useState<DNSEntryRead[]>([]);
-  const [vmOptions, setVmOptions] = useState<DNSTabVm[]>(vms);
+  const { confirm } = useFeedback();
+
+  const vmKey = useMemo(
+    () => vms.map((v) => `${v.id}:${v.name}:${v.ip ?? ''}`).join('|'),
+    [vms],
+  );
+  const vmSnapshot = useMemo(
+    () => vms.map((v) => ({ id: v.id, name: v.name, ip: v.ip })),
+    [vmKey],
+  );
+
+  const [allRecords, setAllRecords] = useState<DNSEntryRead[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [vmOptions, setVmOptions] = useState<DNSTabVm[]>(vmSnapshot);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -47,13 +67,14 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
     try {
       if (listMode === 'all') {
         const [dnsData, vmsData] = await Promise.all([
-          apiClient.getDnsEntries({ size: 100 }),
-          apiClient.getVms({ size: 100 }).catch(() => ({ items: [] })),
+          apiClient.getDnsEntries({ page, size: PAGE_SIZE }),
+          apiClient.getVms({ size: 100 }).catch(() => ({ items: [], total: 0 })),
         ]);
-        setRecords(dnsData.items);
+        setAllRecords(dnsData.items);
+        setServerTotal(dnsData.total);
         setVmOptions(
-          vms.length > 0
-            ? vms
+          vmSnapshot.length > 0
+            ? vmSnapshot
             : (vmsData.items || []).map((vm) => ({
                 id: String(vm.id),
                 name: vm.node || `vm-${vm.id}`,
@@ -61,32 +82,58 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
               })),
         );
       } else {
-        if (vms.length === 0) {
-          setRecords([]);
+        if (vmSnapshot.length === 0) {
+          setAllRecords([]);
+          setServerTotal(0);
           setVmOptions([]);
+          setError('');
           return;
         }
         const results = await Promise.all(
-          vms.map((v) =>
-            apiClient.getDnsForVm(parseInt(v.id, 10), { size: 100 }).catch(() => ({ items: [] })),
+          vmSnapshot.map((v) =>
+            apiClient.getDnsForVm(parseInt(v.id, 10), { size: 100 }).catch(() => ({
+              items: [],
+              total: 0,
+            })),
           ),
         );
         const byId = new Map<number, DNSEntryRead>();
         results.flatMap((r) => r.items).forEach((e) => byId.set(e.id, e));
-        setRecords(Array.from(byId.values()));
-        setVmOptions(vms);
+        const merged = Array.from(byId.values());
+        setAllRecords(merged);
+        setServerTotal(merged.length);
+        setVmOptions(vmSnapshot);
+        setError('');
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les entrées DNS.');
-      setRecords([]);
+      setError(getApiErrorMessage(err, 'Impossible de charger les entrées DNS.'));
+      setAllRecords([]);
+      setServerTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [listMode, vms]);
+  }, [listMode, vmSnapshot, page]);
 
   useEffect(() => {
     loadRecords();
   }, [loadRecords]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [listMode, vmKey]);
+
+  const total = listMode === 'all' ? serverTotal : allRecords.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+
+  const visibleRecords = useMemo(() => {
+    if (listMode === 'all') return allRecords;
+    const start = (safePage - 1) * PAGE_SIZE;
+    return allRecords.slice(start, start + PAGE_SIZE);
+  }, [allRecords, listMode, safePage]);
+
+  const activeCount = allRecords.filter((r) => entryStatus(r) === 'active').length;
+  const pendingCount = allRecords.filter((r) => entryStatus(r) === 'pending').length;
 
   const handleCreate = async () => {
     setError('');
@@ -98,13 +145,14 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
     }
     setSubmitting(true);
     try {
-      const created = await apiClient.createDnsEntry({ hostname, vm_id: vmId });
-      setRecords((prev) => [created, ...prev.filter((r) => r.id !== created.id)]);
+      await apiClient.createDnsEntry({ hostname, vm_id: vmId });
       setFormHostname('');
       setFormVmId('');
       setShowCreateModal(false);
+      setPage(1);
+      await loadRecords();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Création impossible.');
+      setError(getApiErrorMessage(err, 'Création impossible.'));
     } finally {
       setSubmitting(false);
     }
@@ -120,25 +168,34 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
     setSubmitting(true);
     setError('');
     try {
-      const updated = await apiClient.updateDnsEntry(editingEntry.id, { hostname });
-      setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      await apiClient.updateDnsEntry(editingEntry.id, { hostname });
       setEditingEntry(null);
       setEditHostname('');
+      await loadRecords();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Mise à jour impossible.');
+      setError(getApiErrorMessage(err, 'Mise à jour impossible.'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Supprimer cet enregistrement DNS ?')) return;
+    const ok = await confirm({
+      title: 'Supprimer l\'enregistrement DNS',
+      message: 'Cette entrée sera retirée définitivement.',
+      confirmLabel: 'Supprimer',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setError('');
     try {
       await apiClient.deleteDnsEntry(id);
-      setRecords((prev) => prev.filter((r) => r.id !== id));
+      const nextTotal = total - 1;
+      const nextPages = Math.max(1, Math.ceil(nextTotal / PAGE_SIZE));
+      if (page > nextPages) setPage(nextPages);
+      await loadRecords();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Suppression impossible.');
+      setError(getApiErrorMessage(err, 'Suppression impossible.'));
     }
   };
 
@@ -169,9 +226,6 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
         return 'Erreur';
     }
   };
-
-  const activeCount = records.filter((r) => entryStatus(r) === 'active').length;
-  const pendingCount = records.filter((r) => entryStatus(r) === 'pending').length;
 
   return (
     <div className="space-y-6">
@@ -206,24 +260,23 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
         </div>
       </div>
 
-      {error && (
-        <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <p>{error}</p>
-        </div>
-      )}
+      <FeedbackBanner error={error} onDismissError={() => setError('')} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Total DNS</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{records.length}</p>
+          <p className="text-2xl font-black text-slate-900 mt-1">{total}</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Actifs</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            Actifs{listMode === 'all' ? ' (page)' : ''}
+          </p>
           <p className="text-2xl font-black text-emerald-600 mt-1">{activeCount}</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">En attente</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            En attente{listMode === 'all' ? ' (page)' : ''}
+          </p>
           <p className="text-2xl font-black text-yellow-600 mt-1">{pendingCount}</p>
         </div>
       </div>
@@ -243,76 +296,87 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
             <p className="text-xs font-bold text-slate-500">Chargement…</p>
           </div>
-        ) : records.length === 0 ? (
-          <div className="text-center py-12">
-            <Globe className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <p className="text-sm font-bold text-slate-400">Aucun enregistrement DNS</p>
-            <p className="text-xs text-slate-400 mt-1">
-              {vmOptions.length === 0
+        ) : total === 0 ? (
+          <EmptyState
+            icon={Globe}
+            title="Aucun enregistrement DNS"
+            description={
+              vmOptions.length === 0
                 ? 'Créez d\'abord une VM, puis associez un nom de domaine.'
-                : 'Créez votre premier enregistrement (hostname + VM).'}
-            </p>
-          </div>
+                : 'Créez votre premier enregistrement (hostname + VM).'
+            }
+          />
         ) : (
-          <div className="space-y-3">
-            {records.map((record) => {
-              const status = entryStatus(record);
-              return (
-                <div
-                  key={record.id}
-                  className="border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-all"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm font-black text-slate-900 truncate">{record.hostname}</h4>
-                        <span
-                          className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${getStatusColor(status)}`}
+          <>
+            <div className="space-y-3">
+              {visibleRecords.map((record) => {
+                const status = entryStatus(record);
+                return (
+                  <div
+                    key={record.id}
+                    className="border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-all"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-black text-slate-900 truncate">
+                            {record.hostname}
+                          </h4>
+                          <span
+                            className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${getStatusColor(status)}`}
+                          >
+                            {getStatusLabel(status)}
+                          </span>
+                        </div>
+                        <div className="mt-2 space-y-1 text-xs text-slate-600">
+                          <p>
+                            <span className="font-bold">IP :</span>{' '}
+                            {record.ip_address || '— (en propagation)'}
+                          </p>
+                          <p>
+                            <span className="font-bold">VM :</span>{' '}
+                            {vmNameById(vmOptions, record.vm_id)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDetailDnsId(record.id)}
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200"
+                          title="Détail API"
                         >
-                          {getStatusLabel(status)}
-                        </span>
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startEdit(record)}
+                          className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200"
+                          title="Modifier le hostname"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(record.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-slate-200"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <div className="mt-2 space-y-1 text-xs text-slate-600">
-                        <p>
-                          <span className="font-bold">IP :</span>{' '}
-                          {record.ip_address || '— (en propagation)'}
-                        </p>
-                        <p>
-                          <span className="font-bold">VM :</span> {vmNameById(vmOptions, record.vm_id)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDetailDnsId(record.id)}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200"
-                        title="Détail API"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => startEdit(record)}
-                        className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200"
-                        title="Modifier le hostname"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(record.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-slate-200"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            <Pagination
+              page={safePage}
+              pageSize={PAGE_SIZE}
+              total={total}
+              onPageChange={setPage}
+            />
+          </>
         )}
       </div>
 
@@ -323,7 +387,8 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
               Nouvel enregistrement DNS
             </h3>
             <p className="text-[10px] text-slate-500 mb-4 font-medium">
-              FQDN valide, ex. <code className="font-mono">api.projet.dc.enspy.cm</code> — un hostname par VM.
+              FQDN valide, ex. <code className="font-mono">api.projet.dc.enspy.cm</code> — un hostname
+              par VM.
             </p>
             <div className="space-y-4">
               <div>

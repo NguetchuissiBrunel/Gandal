@@ -1,6 +1,7 @@
 // ── Types partagés du Dashboard Enseignant (GANDAL) ──
 
 export interface TeacherProfile {
+  id: number;
   username: string;
   email: string;
   password?: string;

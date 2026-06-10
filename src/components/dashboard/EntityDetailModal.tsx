@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
+import FeedbackBanner from '@/components/ui/FeedbackBanner';
+import { getApiErrorMessage } from '@/lib/apiError';
 import {
   apiClient,
   type StudentRead,
@@ -132,10 +134,11 @@ export default function EntityDetailModal({ kind, id, onClose }: EntityDetailMod
         }
         if (!cancelled) {
           setRows(rowsFromData(data as Record<string, unknown>));
+          setError('');
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Chargement impossible');
+          setError(getApiErrorMessage(err, 'Chargement impossible'));
           setRows([]);
         }
       } finally {
@@ -174,13 +177,13 @@ export default function EntityDetailModal({ kind, id, onClose }: EntityDetailMod
               <p className="text-xs font-bold text-slate-500">Chargement depuis l&apos;API…</p>
             </div>
           )}
-          {error && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {error}
-            </div>
+          {!loading && error && (
+            <FeedbackBanner error={error} onDismissError={() => setError('')} />
           )}
-          {!loading && !error && (
+          {!loading && !error && rows.length === 0 && (
+            <p className="text-center text-sm text-slate-500 py-8">Aucune donnée disponible.</p>
+          )}
+          {!loading && !error && rows.length > 0 && (
             <dl className="space-y-3">
               {rows.map(({ key, label, value }) => (
                 <div key={key} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">

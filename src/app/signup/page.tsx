@@ -18,6 +18,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { apiClient, type TeacherRead } from '@/lib/apiClient';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 /* ── Vis métallique 3D ── */
 const Screw = ({ className }: { className: string }) => (
@@ -163,7 +164,7 @@ export default function SignupPage() {
       setSuccess(true);
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || 'Une erreur est survenue lors de l\'envoi de la demande.');
+      setError(getApiErrorMessage(err, 'Une erreur est survenue lors de l\'envoi de la demande.'));
     }
   };
 

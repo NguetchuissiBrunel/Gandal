@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Copy, CheckCircle2 } from 'lucide-react';
+import { X, Copy, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import type { ApprovalCredentials } from '@/lib/approvalUtils';
 
@@ -18,6 +18,7 @@ export default function CredentialsModal({
   onClose,
 }: CredentialsModalProps) {
   const [copied, setCopied] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const emailLine = studentEmail || credentials.email || '—';
 
   const copyAll = async () => {
@@ -60,9 +61,9 @@ export default function CredentialsModal({
 
         <div className="space-y-3 text-sm mb-6">
           {[
-            { label: "Nom d'utilisateur", value: credentials.username },
-            { label: 'Mot de passe', value: credentials.password },
-            { label: 'E-mail', value: emailLine },
+            { label: "Nom d'utilisateur", value: credentials.username, secret: false },
+            { label: 'Mot de passe', value: credentials.password, secret: true },
+            { label: 'E-mail', value: emailLine, secret: false },
           ].map((row) => (
             <div
               key={row.label}
@@ -71,7 +72,21 @@ export default function CredentialsModal({
               <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
                 {row.label}
               </p>
-              <p className="font-mono font-bold text-slate-800 break-all">{row.value}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-mono font-bold text-slate-800 break-all flex-1">
+                  {row.secret && !showPassword ? '••••••••••••' : row.value}
+                </p>
+                {row.secret && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="shrink-0 p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
