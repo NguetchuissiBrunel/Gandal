@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { AUTH_COOKIE_NAME } from '@/lib/authCookie';
 import { getDashboardPath, canAccessDashboardRoute } from '@/lib/authUtils';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://gandal.10.50.30.102.nip.io';
 
 type SessionUser = { type: string; role?: string | null };
 

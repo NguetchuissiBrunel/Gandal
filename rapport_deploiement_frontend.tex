@@ -1,0 +1,371 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------------------
+% Rapport de déploiement — Frontend GANDAL
+% Compilation : pdflatex rapport_deploiement_frontend.tex (x2 pour la TOC)
+% ---------------------------------------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{hyperref}
+
+% --- Couleurs ---
+\definecolor{gandalblue}{RGB}{20,40,90}
+\definecolor{gandalaccent}{RGB}{0,120,160}
+\definecolor{codebg}{RGB}{245,245,247}
+\definecolor{codekw}{RGB}{160,30,90}
+\definecolor{codecmt}{RGB}{100,110,120}
+\definecolor{okgreen}{RGB}{30,130,60}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=gandalblue,
+  urlcolor=gandalaccent,
+  pdftitle={Rapport de deploiement - Frontend GANDAL},
+  pdfauthor={Equipe DevOps GANDAL}
+}
+
+% --- En-têtes / pieds de page ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsc{GANDAL — Déploiement Frontend}}
+\fancyhead[R]{\small\thepage}
+\fancyfoot[C]{\small ENSPY — Département de Génie Informatique}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+
+% --- Titres de section ---
+\titleformat{\section}{\Large\bfseries\color{gandalblue}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{gandalaccent}}{\thesubsection}{0.6em}{}
+
+% --- Style du code ---
+\lstdefinestyle{shell}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{codekw},
+  commentstyle=\color{codecmt}\itshape,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{gray!40},
+  framesep=6pt,
+  xleftmargin=8pt,
+  showstringspaces=false,
+  columns=fullflexible,
+}
+\lstset{style=shell}
+
+% --- Macro encadré statut ---
+\newcommand{\statut}[1]{\textcolor{okgreen}{\textbf{#1}}}
+
+\begin{document}
+
+% =========================== PAGE DE TITRE ===========================
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\color{gandalblue}\rule{\linewidth}{1.5pt}}\\[0.6cm]
+{\Huge\bfseries\color{gandalblue} Rapport de Déploiement}\\[0.4cm]
+{\LARGE Plateforme GANDAL — Frontend Web}\\[0.3cm]
+{\large\itshape Mise en production sur le data center local}\\[0.4cm]
+{\color{gandalblue}\rule{\linewidth}{1.5pt}}\\[1.5cm]
+
+\begin{tabular}{rl}
+\textbf{Application}     & Frontend Next.js 16 (App Router)\\[4pt]
+\textbf{Serveur cible}   & \texttt{root@10.50.30.102} (Debian 12)\\[4pt]
+\textbf{URL publique}    & \url{http://gandal-app.10.50.30.102.nip.io}\\[4pt]
+\textbf{Méthode}         & Conteneurisation Docker + reverse proxy nginx\\[4pt]
+\textbf{Date}            & 11 juin 2026\\[4pt]
+\textbf{Statut}          & \statut{Déployé et vérifié}\\
+\end{tabular}
+
+\vfill
+{\large\textbf{École Nationale Supérieure Polytechnique de Yaoundé (ENSPY)}}\\[0.2cm]
+{Département de Génie Informatique — Promotion GI27}\\[0.2cm]
+{Université de Yaoundé I}\\[1cm]
+{\small \copyright\ 2026 GANDAL Data Center}
+\end{titlepage}
+
+% =========================== SOMMAIRE ===========================
+\tableofcontents
+\thispagestyle{fancy}
+\newpage
+
+% =========================== 1. CONTEXTE ===========================
+\section{Contexte et objectif}
+
+GANDAL est une plateforme académique de gestion centralisée de projets étudiants,
+adossée à un data center local du Département de Génie Informatique. Le présent
+document décrit la mise en production de la \textbf{couche frontend} (interface web)
+sur le serveur d'hébergement \texttt{10.50.30.102}, aux côtés de l'API backend déjà
+en service.
+
+\subsection{Périmètre}
+\begin{itemize}[leftmargin=1.4em]
+  \item Construction d'une image Docker de l'application Next.js.
+  \item Démarrage du conteneur sur l'infrastructure existante.
+  \item Exposition via le reverse proxy nginx mutualisé.
+  \item Configuration du partage de ressources cross-origin (CORS) côté API.
+  \item Vérification fonctionnelle de bout en bout.
+\end{itemize}
+
+% =========================== 2. ENVIRONNEMENT ===========================
+\section{Environnement cible}
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Élément} & \textbf{Valeur} \\
+\midrule
+Hôte & \texttt{omega-test-3001}, Debian GNU/Linux 12, x86\_64 \\
+Moteur de conteneurs & Docker 29.5.3 + Docker Compose v5.1.4 \\
+Node.js sur l'hôte & \textit{Absent} (d'où le choix de la conteneurisation) \\
+Reverse proxy & Conteneur \texttt{iwm-gateway} (nginx 1.29.8-alpine), port 80 \\
+Backend existant & \texttt{gandal-api} (port 8000) + \texttt{gandal-db} (PostgreSQL 17) \\
+Réseau Docker partagé & \texttt{iwm-vm-network} (résolution par nom de service) \\
+\bottomrule
+\end{tabularx}
+\caption{Caractéristiques du serveur de production.}
+\end{table}
+
+\subsection{Justification du choix Docker}
+L'ensemble de l'infrastructure du serveur est conteneurisé : le reverse proxy nginx
+route le trafic vers des \emph{noms de service Docker} sur le réseau interne. Le serveur
+ne disposant pas de runtime Node.js, et un export statique étant impossible (l'application
+utilise un \emph{middleware} d'authentification exécuté côté serveur), la conteneurisation
+est la solution cohérente et la moins intrusive, alignée sur le déploiement du backend.
+
+% =========================== 3. ARCHITECTURE ===========================
+\section{Architecture de déploiement}
+
+Le frontend est exposé sur un \textbf{hôte virtuel dédié} distinct de l'API, le routage
+étant assuré par la directive \texttt{map \$host \$svc} du reverse proxy.
+
+\begin{center}
+\footnotesize
+\begin{tabular}{c}
+\fbox{\parbox{0.92\linewidth}{\centering
+\textbf{Navigateur}\\[2pt]
+$\downarrow$ \texttt{http://gandal-app.10.50.30.102.nip.io} \quad / \quad \texttt{http://gandal.10.50.30.102.nip.io}\\[6pt]
+\textbf{iwm-gateway} (nginx, :80) — routage par nom d'hôte\\[6pt]
+$\swarrow$ \texttt{gandal-app.*} \hspace{3.5cm} $\searrow$ \texttt{gandal.*}\\[6pt]
+\fbox{\texttt{gandal-dev-frontend:3000}} \hspace{1.2cm} \fbox{\texttt{gandal-api:8000}}\\[4pt]
+(Next.js / \texttt{next start}) \hspace{2.0cm} (FastAPI) $\rightarrow$ \texttt{gandal-db:5432}
+}}
+\end{tabular}
+\end{center}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \texttt{gandal-app.10.50.30.102.nip.io} $\rightarrow$ conteneur frontend (port 3000).
+  \item \texttt{gandal.10.50.30.102.nip.io} $\rightarrow$ API backend (port 8000), inchangé.
+  \item Les appels API du navigateur étant cross-origin, le backend autorise
+        explicitement l'origine du frontend (cf. \S\ref{sec:cors}).
+\end{itemize}
+
+% =========================== 4. ARTEFACTS ===========================
+\section{Artefacts de déploiement}
+
+\subsection{Dockerfile (multi-stage)}
+Image construite en deux étapes : compilation puis exécution avec l'utilisateur
+non privilégié \texttt{node}. L'approche s'appuie sur les scripts du projet
+(\texttt{next build} / \texttt{next start}), robuste vis-à-vis des spécificités de
+cette distribution de Next.js.
+
+\begin{lstlisting}[language=bash]
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+RUN npm prune --omit=dev
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
+COPY --from=build --chown=node:node /app/package.json ./package.json
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/.next ./.next
+COPY --from=build --chown=node:node /app/public ./public
+COPY --from=build --chown=node:node /app/next.config.ts ./next.config.ts
+USER node
+EXPOSE 3000
+CMD ["npm", "run", "start"]
+\end{lstlisting}
+
+\subsection{Orchestration (docker-compose.yml)}
+\begin{lstlisting}[language=bash]
+name: gandal-frontend
+services:
+  frontend:
+    build: { context: ., dockerfile: Dockerfile }
+    image: gandal-dev-frontend:latest
+    container_name: gandal-dev-frontend
+    restart: unless-stopped
+    environment: { NODE_ENV: production, PORT: "3000", HOSTNAME: 0.0.0.0 }
+    expose: ["3000"]
+    networks: [gateway-net]
+networks:
+  gateway-net:
+    external: true
+    name: iwm-vm-network
+\end{lstlisting}
+
+% =========================== 5. PROCEDURE ===========================
+\section{Procédure de déploiement}
+
+\subsection{Transfert des sources}
+Les sources (\(\approx\)11 Mo, assets statiques inclus) sont synchronisées vers
+\texttt{/root/gandal-dev-frontend} :
+\begin{lstlisting}[language=bash]
+rsync -az --delete --exclude=node_modules --exclude=.next --exclude=.git \
+      ./ root@10.50.30.102:/root/gandal-dev-frontend/
+\end{lstlisting}
+
+\subsection{Construction et démarrage}
+La construction est réalisée directement sur le serveur (build isolé dans le
+conteneur, indépendant de l'environnement hôte) :
+\begin{lstlisting}[language=bash]
+cd /root/gandal-dev-frontend && docker compose up -d --build
+\end{lstlisting}
+Résultat : image \texttt{gandal-dev-frontend:latest} (\(\approx\)911 Mo), conteneur
+\texttt{gandal-dev-frontend} en état \texttt{running} sur le réseau \texttt{iwm-vm-network}.
+
+\subsection{Routage nginx}
+Ajout d'une entrée dans \texttt{/root/iwm/ops/nginx/gateway.conf} :
+\begin{lstlisting}[language=bash]
+map $host $svc {
+    default               "";
+    "~^gandal-app\."      "gandal-dev-frontend:3000";   # <-- ajout
+    "~^gandal(-api)?\."   "gandal-api:8000";
+    ...
+}
+\end{lstlisting}
+
+\subsection{Configuration CORS}
+\label{sec:cors}
+L'origine du frontend est ajoutée à \texttt{CORS\_ORIGINS} dans
+\texttt{/gandal-dev/.env}, puis le service API est recréé pour prise en compte :
+\begin{lstlisting}[language=bash]
+CORS_ORIGINS=...,http://gandal-app.10.50.30.102.nip.io
+cd /gandal-dev && docker compose -f docker-compose.prod.yml up -d api
+\end{lstlisting}
+
+% =========================== 6. INCIDENT ===========================
+\section{Incident rencontré et résolution}
+
+\subsection{Symptôme}
+Après ajout de la règle de routage, l'URL du frontend renvoyait \texttt{HTTP 404 —
+Unknown host}, alors que la configuration sur disque était correcte et que la
+résolution DNS interne du conteneur fonctionnait.
+
+\subsection{Cause racine}
+Le conteneur \texttt{iwm-gateway} monte un \emph{fichier unique}
+(\texttt{gateway.conf}) en \emph{bind mount}. Une modification via \texttt{sed -i}
+remplace l'\emph{inode} du fichier ; le conteneur reste alors accroché à l'ancien
+inode. Les rechargements \texttt{nginx -s reload} relisaient donc une configuration
+figée, sans la nouvelle règle.
+
+\subsection{Résolution}
+Validation de la configuration dans un conteneur nginx jetable, puis redémarrage du
+gateway pour re-lier le fichier :
+\begin{lstlisting}[language=bash]
+docker run --rm -v /root/iwm/ops/nginx/gateway.conf:\
+/etc/nginx/conf.d/default.conf:ro nginx:1.29.8-alpine nginx -t   # OK
+docker restart iwm-gateway
+\end{lstlisting}
+
+\subsection{Recommandation}
+Pour toute modification ultérieure du gateway, privilégier une réécriture
+\emph{in-place} préservant l'inode, ou prévoir le redémarrage du conteneur. À terme,
+monter un \emph{répertoire} plutôt qu'un fichier unique élimine ce risque.
+
+% =========================== 7. VERIFICATION ===========================
+\section{Vérification fonctionnelle}
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{@{}Xll@{}}
+\toprule
+\textbf{Contrôle} & \textbf{Attendu} & \textbf{Résultat} \\
+\midrule
+Page d'accueil via gateway & HTTP 200 & \statut{200} (HTML, titre GANDAL) \\
+Asset statique \texttt{/logo.png} & HTTP 200 & \statut{200} (112 Ko) \\
+API \texttt{gandal.*/health} & HTTP 200 & \statut{200} (backend intact) \\
+Préflight CORS depuis le front & En-tête autorisé & \statut{allow-origin présent} \\
+Persistance conteneur & \texttt{restart=unless-stopped} & \statut{Actif} \\
+\bottomrule
+\end{tabularx}
+\caption{Synthèse des tests post-déploiement.}
+\end{table}
+
+\noindent En-tête CORS retourné par l'API pour l'origine du frontend :
+\begin{lstlisting}[language=bash]
+access-control-allow-origin: http://gandal-app.10.50.30.102.nip.io
+access-control-allow-credentials: true
+access-control-allow-methods: DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT
+\end{lstlisting}
+
+% =========================== 8. EXPLOITATION ===========================
+\section{Exploitation et maintenance}
+
+\subsection{Commandes usuelles}
+\begin{lstlisting}[language=bash]
+# Etat / logs
+docker ps --filter name=gandal-dev-frontend
+docker logs -f gandal-dev-frontend
+
+# Mise a jour (apres rsync des nouvelles sources)
+cd /root/gandal-dev-frontend && docker compose up -d --build
+
+# Redemarrage
+docker restart gandal-dev-frontend
+\end{lstlisting}
+
+\subsection{Procédure de rollback}
+\begin{enumerate}[leftmargin=1.6em]
+  \item Restaurer la sauvegarde du gateway : \texttt{gateway.conf.bak.*} puis
+        \texttt{docker restart iwm-gateway}.
+  \item Restaurer \texttt{/gandal-dev/.env.bak.*} et recréer l'API.
+  \item Arrêter le frontend : \texttt{docker compose down} dans
+        \texttt{/root/gandal-dev-frontend}.
+\end{enumerate}
+
+% =========================== 9. CONCLUSION ===========================
+\section{Conclusion}
+
+Le frontend GANDAL est déployé en production sur \texttt{10.50.30.102} et accessible
+à l'adresse \url{http://gandal-app.10.50.30.102.nip.io}. L'intégration au reverse
+proxy mutualisé et la configuration CORS permettent une communication complète avec
+l'API existante, sans régression sur les autres services hébergés. L'ensemble est
+géré par Docker Compose, avec redémarrage automatique et procédure de rollback
+documentée.
+
+\subsection*{Points d'amélioration suggérés}
+\begin{itemize}[leftmargin=1.4em]
+  \item Mise en place de TLS (HTTPS) sur le gateway.
+  \item Intégration continue : build et publication de l'image vers un registre
+        (ex. GHCR) pour réduire la charge de build sur le serveur.
+  \item Surveillance de la mémoire (RAM limitée, absence de swap sur l'hôte).
+\end{itemize}
+
+\vfill
+\begin{center}
+\small\itshape Document généré dans le cadre du déploiement du 11 juin 2026.
+\end{center}
+
+\end{document}

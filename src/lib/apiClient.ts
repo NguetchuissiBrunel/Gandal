@@ -1,7 +1,7 @@
 import { components } from './api';
 import { syncAuthCookie } from './authCookie';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'http://gandal.10.50.30.102.nip.io';
 
 export const AUTH_CHANGE_EVENT = 'gandal-auth-change';
 

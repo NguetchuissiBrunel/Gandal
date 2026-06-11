@@ -1,0 +1,24 @@
+name: gandal-frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gandal-dev-frontend:latest
+    container_name: gandal-dev-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    expose:
+      - "3000"
+    networks:
+      - gateway-net
+
+networks:
+  # Shared gateway network: lets iwm-gateway reverse-proxy to gandal-dev-frontend:3000
+  gateway-net:
+    external: true
+    name: iwm-vm-network
