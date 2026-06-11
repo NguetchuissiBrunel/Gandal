@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Globe, Plus, Trash2, Edit2, Check, X, AlertCircle, Loader2, Eye } from 'lucide-react';
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import Screw3D from '@/components/Screw3D';
@@ -27,7 +27,9 @@ function entryStatus(entry: DNSEntryRead): 'active' | 'pending' | 'error' {
   return 'pending';
 }
 
-export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
+const EMPTY_VMS: DNSTabVm[] = [];
+
+export default function DNSTab({ vms = EMPTY_VMS, listMode = 'by-vm' }: DNSTabProps) {
   const [records, setRecords] = useState<DNSEntryRead[]>([]);
   const [vmOptions, setVmOptions] = useState<DNSTabVm[]>(vms);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,19 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
   const [formHostname, setFormHostname] = useState('');
   const [formVmId, setFormVmId] = useState('');
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const serializedVms = (vms || []).map((v) => `${v.id}:${v.name}:${v.ip ?? ''}`).join('|');
+  const stableVms = useMemo(() => {
+    return vms;
+  }, [serializedVms]);
+
   const loadRecords = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -50,10 +65,11 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
           apiClient.getDnsEntries({ size: 100 }),
           apiClient.getVms({ size: 100 }).catch(() => ({ items: [] })),
         ]);
+        if (!isMountedRef.current) return;
         setRecords(dnsData.items);
         setVmOptions(
-          vms.length > 0
-            ? vms
+          stableVms.length > 0
+            ? stableVms
             : (vmsData.items || []).map((vm) => ({
                 id: String(vm.id),
                 name: vm.node || `vm-${vm.id}`,
@@ -61,28 +77,35 @@ export default function DNSTab({ vms = [], listMode = 'by-vm' }: DNSTabProps) {
               })),
         );
       } else {
-        if (vms.length === 0) {
-          setRecords([]);
-          setVmOptions([]);
+        if (stableVms.length === 0) {
+          if (isMountedRef.current) {
+            setRecords([]);
+            setVmOptions([]);
+            setLoading(false);
+          }
           return;
         }
         const results = await Promise.all(
-          vms.map((v) =>
+          stableVms.map((v) =>
             apiClient.getDnsForVm(parseInt(v.id, 10), { size: 100 }).catch(() => ({ items: [] })),
           ),
         );
+        if (!isMountedRef.current) return;
         const byId = new Map<number, DNSEntryRead>();
         results.flatMap((r) => r.items).forEach((e) => byId.set(e.id, e));
         setRecords(Array.from(byId.values()));
-        setVmOptions(vms);
+        setVmOptions(stableVms);
       }
     } catch (err: unknown) {
+      if (!isMountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Impossible de charger les entrées DNS.');
       setRecords([]);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [listMode, vms]);
+  }, [listMode, stableVms]);
 
   useEffect(() => {
     loadRecords();

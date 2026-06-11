@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FolderGit, LogIn, UserPlus, Menu, X, LayoutDashboard, LogOut } from 'lucide-react';
+import { FolderGit, LogIn, Images, Menu, X, LayoutDashboard, LogOut } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { getDashboardPath, getRoleLabel, getUserInitials } from '@/lib/authUtils';
 import { useAuthSession } from '@/hooks/useAuthSession';
@@ -22,7 +22,6 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isLoginPage = pathname === '/login';
-  const isSignupPage = pathname === '/signup';
   const isAuthenticated = !!user;
 
   useEffect(() => {
@@ -87,17 +86,9 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
         {!isLoginPage && (
           <Link
             href="/login"
-            className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-blue-600 transition-all duration-200 whitespace-nowrap"
-          >
-            Connexion
-          </Link>
-        )}
-        {!isSignupPage && (
-          <Link
-            href="/signup"
             className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-slate-950 rounded-xl transition-all duration-300 shadow-md shadow-blue-500/10 whitespace-nowrap"
           >
-            S&apos;inscrire
+            Connexion
           </Link>
         )}
       </>
@@ -137,20 +128,10 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
           <Link
             href="/login"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-blue-600 transition-all font-bold text-xs uppercase tracking-wider"
-          >
-            <LogIn className="w-4 h-4 text-slate-500" />
-            Connexion
-          </Link>
-        )}
-        {!isSignupPage && (
-          <Link
-            href="/signup"
-            onClick={() => setIsMobileMenuOpen(false)}
             className="flex items-center gap-3 p-3 rounded-xl bg-blue-600 text-white hover:bg-slate-950 transition-all font-bold text-xs uppercase tracking-wider justify-center shadow-md shadow-blue-500/10"
           >
-            <UserPlus className="w-4 h-4" />
-            S&apos;inscrire
+            <LogIn className="w-4 h-4" />
+            Connexion
           </Link>
         )}
       </>
@@ -205,6 +186,12 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
                 >
                   Catalogue Projets
                 </Link>
+                <Link
+                  href="/gallery"
+                  className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-blue-600 transition-colors"
+                >
+                  Galerie
+                </Link>
               </div>
 
               <div className="hidden md:flex items-center gap-3 shrink-0">
@@ -234,6 +221,14 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
               <FolderGit className="w-4 h-4 text-slate-500" />
               Catalogue Projets
             </Link>
+            <Link
+              href="/gallery"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-blue-600 transition-all font-bold text-xs uppercase tracking-wider"
+            >
+              <Images className="w-4 h-4 text-slate-500" />
+              Galerie
+            </Link>
             <div className="h-px bg-slate-100" />
             <div className="flex flex-col gap-2">
               {authActionsMobile}
@@ -245,3 +240,4 @@ export default function Navbar({ minimal = false, onTransitionToLanding }: Navba
     </div>
   );
 }
+

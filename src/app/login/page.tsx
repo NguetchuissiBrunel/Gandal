@@ -204,15 +204,12 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Lien d'inscription sous le panneau */}
+          {/* Information d'inscription sous le panneau */}
           <div className="mt-6 text-center text-xs border-t border-slate-100 pt-4">
             <span className="text-slate-400 font-medium">Nouveau sur GANDAL ? </span>
-            <Link
-              href="/signup"
-              className="text-blue-600 hover:text-blue-700 font-bold uppercase tracking-wider transition-colors ml-1"
-            >
-              Créer un compte
-            </Link>
+            <span className="text-slate-500 font-semibold ml-1">
+              Contactez votre enseignant ou administrateur pour obtenir un compte.
+            </span>
           </div>
 
         </div>

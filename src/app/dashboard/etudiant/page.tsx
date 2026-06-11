@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -153,6 +153,10 @@ export default function StudentDashboard() {
   const [loadingTeachers, setLoadingTeachers] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const dnsVms = useMemo(() => {
+    return vms.map((v) => ({ id: v.id, name: v.name, ip: v.ip }));
+  }, [vms]);
 
   const showToast = (message: string, type: ToastType = 'success') => {
     setToast({ message, type });
@@ -574,7 +578,7 @@ export default function StudentDashboard() {
           {activeTab === 'dns' && (
             <DNSTab
               listMode="by-vm"
-              vms={vms.map((v) => ({ id: v.id, name: v.name, ip: v.ip }))}
+              vms={dnsVms}
             />
           )}
 

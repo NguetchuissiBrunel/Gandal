@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -106,6 +106,10 @@ export default function TeacherDashboard() {
     pendingRequests: 0,
   });
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+
+  const dnsVms = useMemo(() => {
+    return deployedVms.map((vm) => ({ id: vm.id, name: vm.nom, ip: vm.ip }));
+  }, [deployedVms]);
 
   const showToast = (message: string, type: ToastType = 'success') => {
     setToast({ message, type });
@@ -545,7 +549,7 @@ export default function TeacherDashboard() {
           {activeTab === 'dns' && (
             <DNSTab
               listMode="by-vm"
-              vms={deployedVms.map((vm) => ({ id: vm.id, name: vm.nom, ip: vm.ip }))}
+              vms={dnsVms}
             />
           )}
         </section>

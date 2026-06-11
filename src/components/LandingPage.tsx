@@ -165,20 +165,13 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
                 <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
-              <>
-                <Link
-                  href="/signup"
-                  className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-black transition-all duration-300 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 text-center flex items-center justify-center"
-                >
-                  S&apos;inscrire ici
-                </Link>
-                <Link
-                  href="/login"
-                  className="px-8 py-4 border-2 border-black text-black hover:bg-black hover:text-white font-bold rounded-xl transition-all duration-200 text-center flex items-center justify-center"
-                >
-                  Connexion
-                </Link>
-              </>
+              <Link
+                href="/login"
+                className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-black transition-all duration-300 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 text-center flex items-center justify-center gap-2 w-full max-w-xs mx-auto"
+              >
+                Connexion
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             )}
           </div>
 
@@ -544,11 +537,11 @@ export default function LandingPage({ initialSection }: { initialSection?: strin
                   </Link>
                 ) : (
                   <Link
-                    href="/signup"
+                    href="/login"
                     className="px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
                   >
-                    Nous Rejoindre
-                    <ArrowUpRight className="w-4 h-4" />
+                    Connexion à mon espace
+                    <ArrowRight className="w-4 h-4" />
                   </Link>
                 )}
               </div>

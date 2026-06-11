@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = readToken(request);
 
-  if ((pathname === '/login' || pathname === '/signup') && token) {
+  if (pathname === '/login' && token) {
     const user = await fetchSessionUser(token);
     if (user) {
       return NextResponse.redirect(new URL(getDashboardPath(user as Parameters<typeof getDashboardPath>[0]), request.url));
@@ -68,5 +68,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/signup'],
+  matcher: ['/dashboard/:path*', '/login'],
 };
