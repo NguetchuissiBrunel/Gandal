@@ -12,6 +12,11 @@ services:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: 0.0.0.0
+    # The auth middleware runs server-side inside this container and calls the API
+    # by its public nip.io hostname; Docker's DNS can't resolve nip.io, so we point
+    # it at the host gateway, where iwm-gateway (:80) routes it to gandal-api.
+    extra_hosts:
+      - "gandal.10.50.30.102.nip.io:host-gateway"
     expose:
       - "3000"
     networks:

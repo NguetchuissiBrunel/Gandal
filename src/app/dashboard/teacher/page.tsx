@@ -23,6 +23,7 @@ import {
   collectStudentIdsForTeacher,
   loadVmsForTeacherDashboard,
 } from '@/lib/teacherDashboardUtils';
+import { vmDisplayName } from '@/lib/vmMapper';
 
 const TABS = [
   { id: 'profile', label: 'Mon Profil', icon: User },
@@ -67,7 +68,7 @@ const mapPublication = (pub: any): Publication => ({
 
 const mapDeployedVM = (vm: any): DeployedVm => ({
   id: vm.id.toString(),
-  nom: vm.node || `vm-${vm.id}`,
+  nom: vmDisplayName(vm),
   iso: vm.iso || 'Ubuntu',
   ram: `${vm.size_ram} Go`,
   rom: `${vm.size_rom} Go`,

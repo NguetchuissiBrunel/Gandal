@@ -24,6 +24,7 @@ import ProfileTab from '@/components/dashboard/ProfileTab';
 import DNSTab from '@/components/dashboard/DNSTab';
 import { apiClient, type TeacherRead, type PublicationRead } from '@/lib/apiClient';
 import { filterByUserId, filterRequestsForStudent } from '@/lib/approvalUtils';
+import { vmDisplayName } from '@/lib/vmMapper';
 
 interface VM {
   id: string;
@@ -77,7 +78,7 @@ const mapVMToUI = (vm: any): VM => {
 
   return {
     id: vm.id.toString(),
-    name: vm.node || `vm-${vm.id}`,
+    name: vmDisplayName(vm),
     os,
     status,
     cpu: vm.n_cpu,

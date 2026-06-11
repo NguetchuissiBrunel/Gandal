@@ -949,6 +949,8 @@ export interface components {
         };
         /** VMCreate */
         VMCreate: {
+            /** Name */
+            name?: string | null;
             /** Size Rom */
             size_rom: number;
             /** Size Ram */
@@ -978,6 +980,8 @@ export interface components {
         };
         /** VMRead */
         VMRead: {
+            /** Name */
+            name?: string | null;
             /** Size Rom */
             size_rom: number;
             /** Size Ram */
@@ -1011,6 +1015,8 @@ export interface components {
         };
         /** VMUpdate */
         VMUpdate: {
+            /** Name */
+            name?: string | null;
             /** Size Rom */
             size_rom?: number | null;
             /** Size Ram */

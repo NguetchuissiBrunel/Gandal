@@ -5,6 +5,7 @@ import { Server, Cpu, HardDrive, Trash2, PauseCircle, PlayCircle, Eye } from 'lu
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import ScrewCard, { Screw } from '@/components/dashboard/superadmin/ScrewCard';
 import { apiClient } from '@/lib/apiClient';
+import { vmDisplayName, vmProxmoxLabel } from '@/lib/vmMapper';
 
 interface VM {
   id: string;
@@ -65,8 +66,8 @@ export default function VMMonitoring() {
 
         return {
           id: vm.id.toString(),
-          id_proxmox: `proxmox-node-${vm.id}`,
-          nom: vm.node || `vm-${vm.id}`,
+          id_proxmox: vmProxmoxLabel(vm),
+          nom: vmDisplayName(vm),
           size_rom: `${vm.size_rom} Go`,
           size_ram: `${vm.size_ram} Go`,
           size_rom_num: vm.size_rom,

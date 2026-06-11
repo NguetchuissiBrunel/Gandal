@@ -5,6 +5,7 @@ import { Globe, Plus, Trash2, Edit2, Check, X, AlertCircle, Loader2, Eye } from 
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import Screw3D from '@/components/Screw3D';
 import { apiClient, type DNSEntryRead } from '@/lib/apiClient';
+import { vmDisplayName } from '@/lib/vmMapper';
 
 export interface DNSTabVm {
   id: string;
@@ -72,7 +73,7 @@ export default function DNSTab({ vms = EMPTY_VMS, listMode = 'by-vm' }: DNSTabPr
             ? stableVms
             : (vmsData.items || []).map((vm) => ({
                 id: String(vm.id),
-                name: vm.node || `vm-${vm.id}`,
+                name: vmDisplayName(vm),
                 ip: vm.ip_address || undefined,
               })),
         );
