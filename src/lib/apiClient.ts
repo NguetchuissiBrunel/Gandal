@@ -1,7 +1,7 @@
 import { components } from './api';
 import { syncAuthCookie } from './authCookie';
 
-const BASE_URL = 'https://gandal-api.onrender.com';
+const BASE_URL = 'http://localhost:8000';
 
 export const AUTH_CHANGE_EVENT = 'gandal-auth-change';
 
@@ -75,7 +75,7 @@ class ApiClient {
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const headers = new Headers(options.headers || {});
-    
+
     if (this.token) {
       headers.set('Authorization', `Bearer ${this.token}`);
     }
