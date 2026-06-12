@@ -1,7 +1,19 @@
 import { components } from './api';
 import { syncAuthCookie } from './authCookie';
 
-const BASE_URL = 'https://gandal-api.onrender.com';
+// API on-premise (GANDAL-API). Comme le front et l'API sont TOUJOURS co-localisés
+// (même hôte), on déduit l'URL de l'API depuis l'adresse du navigateur → fonctionne
+// quel que soit le point d'accès (IP, nom DNS…), sans dépendre d'une URL figée au build.
+// NEXT_PUBLIC_API_BASE reste un override explicite pour les cas inhabituels.
+function resolveApiBase(): string {
+  const env = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '');
+  if (env) return env;
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:8080`;
+  }
+  return 'http://127.0.0.1:8080';
+}
+const BASE_URL = resolveApiBase();
 
 export const AUTH_CHANGE_EVENT = 'gandal-auth-change';
 
@@ -34,6 +46,58 @@ export type AdminCreate = components['schemas']['AdminCreate'];
 export type DNSEntryRead = components['schemas']['DNSEntryRead'];
 export type DNSEntryCreate = components['schemas']['DNSEntryCreate'];
 export type DNSEntryUpdate = components['schemas']['DNSEntryUpdate'];
+
+// --- Cluster / topologie (API on-premise Omega) ---
+export interface TopologyVM {
+  vmid: number;
+  name: string | null;
+  node: string | null;
+  status: 'up' | 'stopped' | 'waiting';
+  ip: string | null;
+  internet: boolean;
+  maxcpu: number | null;
+  maxmem: number | null;
+  owner_id: number | null;
+  owner_name: string | null;
+}
+
+export interface TopologyLink {
+  source: number;
+  target: number;
+  group_name: string | null;
+}
+
+export interface ClusterTopology {
+  hosts: string[];
+  vms: TopologyVM[];
+  links: TopologyLink[];
+}
+
+export interface DistributionNode {
+  node: string;
+  current: number;
+  quota: number;
+  target: number;
+}
+
+export interface GpuNode {
+  node: string;
+  available: boolean;
+  gpu?: string;
+  mem_used_mib?: number;
+  mem_total_mib?: number;
+  util_pct?: number;
+  temp_c?: number;
+}
+
+export interface MigrationEntry {
+  vmid: string | null;
+  node_from: string | null;
+  status: string;
+  starttime: number | null;
+  endtime: number | null;
+  user: string | null;
+}
 
 
 class ApiClient {
@@ -407,6 +471,75 @@ class ApiClient {
 
   async ready(): Promise<unknown> {
     return this.request<unknown>('/ready');
+  }
+
+  // --- Cluster (topologie, distribution, internet, réseau) ---
+  async getTopology(): Promise<ClusterTopology> {
+    return this.request<ClusterTopology>('/api/v1/cluster/topology');
+  }
+
+  async getDistribution(): Promise<{ nodes: DistributionNode[] }> {
+    return this.request<{ nodes: DistributionNode[] }>('/api/v1/cluster/distribution');
+  }
+
+  async reconcile(): Promise<{ ok: boolean }> {
+    return this.request<{ ok: boolean }>('/api/v1/cluster/reconcile', { method: 'POST' });
+  }
+
+  async setVmInternet(vmid: number, enable: boolean): Promise<unknown> {
+    return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/internet`, {
+      method: 'POST',
+      body: JSON.stringify({ enable }),
+    });
+  }
+
+  async networkLink(
+    vmIds: number[],
+    enable: boolean,
+    groupName?: string,
+  ): Promise<unknown> {
+    return this.request<unknown>('/api/v1/cluster/network/link', {
+      method: 'POST',
+      body: JSON.stringify({ vm_ids: vmIds, enable, group_name: groupName ?? null }),
+    });
+  }
+
+  async clusterVmAction(vmid: number, action: 'start' | 'stop'): Promise<unknown> {
+    return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/${action}`, { method: 'POST' });
+  }
+
+  async reconfigureVm(vmid: number, data: {
+    name?: string; vcpu_max?: number; ram_mib?: number; disk_gib?: number; vram_mib?: number;
+  }): Promise<unknown> {
+    return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/reconfigure`, {
+      method: 'POST', body: JSON.stringify(data),
+    });
+  }
+
+  async setVmGpu(vmid: number, vramMib: number): Promise<unknown> {
+    return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/gpu`, {
+      method: 'POST', body: JSON.stringify({ vram_mib: vramMib }),
+    });
+  }
+
+  async setVmAutostart(vmid: number, enable: boolean): Promise<unknown> {
+    return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/autostart`, {
+      method: 'POST', body: JSON.stringify({ enable }),
+    });
+  }
+
+  async registerVmDns(vmid: number, hostname?: string): Promise<unknown> {
+    return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/dns`, {
+      method: 'POST', body: JSON.stringify({ hostname: hostname ?? null }),
+    });
+  }
+
+  async getGpu(): Promise<{ gpus: GpuNode[] }> {
+    return this.request<{ gpus: GpuNode[] }>('/api/v1/cluster/gpu');
+  }
+
+  async getMigrations(): Promise<{ migrations: MigrationEntry[] }> {
+    return this.request<{ migrations: MigrationEntry[] }>('/api/v1/cluster/migrations');
   }
 }
 

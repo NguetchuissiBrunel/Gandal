@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard, Server, FileText, User, UserPlus, GraduationCap, Globe } from 'lucide-react';
+import { LayoutDashboard, Server, FileText, User, UserPlus, GraduationCap, Globe, Network } from 'lucide-react';
 import DashboardShell, { type DashboardTab } from '@/components/dashboard/DashboardShell';
 import AdminOverviewTab from '@/components/dashboard/AdminOverviewTab';
 import DNSTab from '@/components/dashboard/DNSTab';
+import TopologyView from '@/components/topology/TopologyView';
 import VMMonitoring from '@/components/dashboard/superadmin/VMMonitoring';
 import RequestsPanel from '@/components/dashboard/superadmin/RequestsPanel';
 import TeachersPanel from '@/components/dashboard/superadmin/TeachersPanel';
@@ -17,7 +18,7 @@ import { useFeedback } from '@/contexts/FeedbackContext';
 
 const INITIAL_PENDING = 0;
 
-type AdminTabId = 'overview' | 'profile' | 'students' | 'teachers' | 'requests' | 'vms' | 'dns';
+type AdminTabId = 'overview' | 'profile' | 'students' | 'teachers' | 'requests' | 'vms' | 'topology' | 'dns';
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
@@ -125,6 +126,14 @@ export default function SuperAdminDashboard() {
       group: 'Opérations',
     },
     {
+      id: 'topology',
+      label: 'Topologie réseau',
+      shortLabel: 'Réseau',
+      description: 'Toile interactive du cluster : VMs, liens réseau, accès Internet, distribution.',
+      icon: Network,
+      group: 'Opérations',
+    },
+    {
       id: 'dns',
       label: 'DNS',
       description: 'Gestion globale des entrées DNS du cluster.',
@@ -196,6 +205,7 @@ export default function SuperAdminDashboard() {
           {activeTab === 'teachers' && <TeachersPanel />}
           {activeTab === 'requests' && <RequestsPanel />}
           {activeTab === 'vms' && <VMMonitoring />}
+          {activeTab === 'topology' && <TopologyView canControlLifecycle showDistribution />}
           {activeTab === 'dns' && <DNSTab listMode="all" />}
     </DashboardShell>
   );

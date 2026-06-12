@@ -127,7 +127,7 @@ const FloatingChatbot: React.FC = () => {
     setPosition(clampPosition(defaultPosition(false), false));
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!inputText.trim() || isTyping) return;
 
     const text = inputText.trim();
@@ -142,18 +142,40 @@ const FloatingChatbot: React.FC = () => {
     setInputText('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          text: getBotResponse(text),
-          isUser: false,
-          timestamp: new Date(),
-        },
-      ]);
-    }, 900);
+    // Appelle le service IA (RAG + LLM) ; repli sur la réponse locale si indisponible.
+    const reply = await fetchAiReply(text);
+    setIsTyping(false);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: (Date.now() + 1).toString(),
+        text: reply,
+        isUser: false,
+        timestamp: new Date(),
+      },
+    ]);
+  };
+
+  const fetchAiReply = async (text: string): Promise<string> => {
+    // IA co-localisée (port 8090). Déduite du navigateur si pas d'override explicite.
+    const env = process.env.NEXT_PUBLIC_CHAT_API_BASE?.replace(/\/$/, '');
+    const base = env
+      || (typeof window !== 'undefined'
+        ? `${window.location.protocol}//${window.location.hostname}:8090`
+        : '');
+    if (!base) return getBotResponse(text);
+    try {
+      const res = await fetch(`${base}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.reply as string) || getBotResponse(text);
+    } catch {
+      return getBotResponse(text);
+    }
   };
 
   const toggleMaximize = () => {

@@ -3,7 +3,11 @@ import type { NextRequest } from 'next/server';
 import { AUTH_COOKIE_NAME } from '@/lib/authCookie';
 import { getDashboardPath, canAccessDashboardRoute } from '@/lib/authUtils';
 
-const API_BASE = 'https://gandal-api.onrender.com';
+// Le middleware s'exécute côté serveur, sur le même hôte que l'API → localhost par défaut.
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') ||
+  process.env.API_BASE_INTERNAL?.replace(/\/$/, '') ||
+  'http://127.0.0.1:8080';
 
 type SessionUser = { type: string; role?: string | null };
 

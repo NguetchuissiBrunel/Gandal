@@ -9,6 +9,7 @@ import {
   BookOpen,
   User,
   Globe,
+  Network,
 } from 'lucide-react';
 
 import DashboardShell, { type DashboardTab } from '@/components/dashboard/DashboardShell';
@@ -18,6 +19,7 @@ import RequestsTab from '@/components/dashboard/RequestsTab';
 import PublicationsTab from '@/components/dashboard/PublicationsTab';
 import ProfileTab from '@/components/dashboard/ProfileTab';
 import DNSTab from '@/components/dashboard/DNSTab';
+import TopologyView from '@/components/topology/TopologyView';
 import { apiClient, type TeacherRead, type PublicationRead } from '@/lib/apiClient';
 import { filterByUserId, filterRequestsForStudent } from '@/lib/approvalUtils';
 import { useFeedback } from '@/contexts/FeedbackContext';
@@ -133,7 +135,7 @@ const mapPublicationToUI = (pub: any): Publication => {
 export default function StudentDashboard() {
   const router = useRouter();
   const { toast, confirm } = useFeedback();
-  const [activeTab, setActiveTab] = useState<'overview' | 'vms' | 'requests' | 'publications' | 'dns' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'vms' | 'topology' | 'requests' | 'publications' | 'dns' | 'profile'>('overview');
 
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [vms, setVms] = useState<VM[]>([]);
@@ -406,6 +408,15 @@ export default function StudentDashboard() {
       mobilePrimary: true,
     },
     {
+      id: 'topology',
+      label: 'Topologie réseau',
+      shortLabel: 'Réseau',
+      description: 'Vue interactive de vos VMs, liens réseau et accès Internet.',
+      icon: Network,
+      group: 'Infrastructure',
+      mobilePrimary: true,
+    },
+    {
       id: 'dns',
       label: 'DNS',
       description: 'Noms de domaine associés à vos machines.',
@@ -487,6 +498,10 @@ export default function StudentDashboard() {
               onNavigateToRequests={() => setActiveTab('requests')}
               onUpdateVMStatus={handleUpdateVMStatus}
             />
+          )}
+
+          {activeTab === 'topology' && (
+            <TopologyView canControlLifecycle />
           )}
 
           {activeTab === 'requests' && (
