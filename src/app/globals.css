@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Mode sombre piloté par la classe .dark sur <html> (et non par l'OS). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -26,17 +29,31 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: #ffffff;
+  color: #171717;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+html.dark body {
+  background: #0a0a0a;
+  color: #ededed;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+/* Clignotement marqué d'une VM trouvée par la recherche (halo orange lumineux). */
+@keyframes gandal-blink {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.0), 0 0 0 0 rgba(245, 158, 11, 0.0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.85), 0 0 32px 10px rgba(245, 158, 11, 0.7);
+    transform: scale(1.10);
+  }
+}
+.gandal-blink {
+  animation: gandal-blink 0.7s ease-in-out infinite;
+  border-radius: 0.75rem;
+  z-index: 50;
 }
 
 /* ── Hide scrollbar (cross-browser) for horizontal tab strips on mobile ── */

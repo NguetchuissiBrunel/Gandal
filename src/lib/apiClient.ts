@@ -57,6 +57,7 @@ export interface TopologyVM {
   internet: boolean;
   maxcpu: number | null;
   maxmem: number | null;
+  vram_mib: number;
   owner_id: number | null;
   owner_name: string | null;
 }
@@ -358,6 +359,17 @@ class ApiClient {
     });
   }
 
+  /** Demande de nom de domaine : nom_choisi → http vers VM_IP:port (reverse-proxy). */
+  async domainRequest(data: {
+    object: string; content?: string | null; teacher_id: number;
+    vm_id: number; hostname: string; port: number;
+  }): Promise<unknown> {
+    return this.request<unknown>('/api/v1/requetes/domain', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async approveRequest(requeteId: number, sshPublicKey: string = ''): Promise<unknown> {
     const body: components['schemas']['ApproveBody'] = { ssh_public_key: sshPublicKey };
     return this.request<unknown>(`/api/v1/requetes/${requeteId}/approve`, {
@@ -508,6 +520,19 @@ class ApiClient {
     return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/${action}`, { method: 'POST' });
   }
 
+  async deleteClusterVm(vmid: number): Promise<void> {
+    await this.request<void>(`/api/v1/cluster/vms/${vmid}`, { method: 'DELETE' });
+  }
+
+  async createClusterVm(data: {
+    name?: string; vcpu?: number; ram_gb?: number; disk_gb?: number;
+    vram_gb?: number; internet?: boolean; autostart?: boolean;
+  }): Promise<{ vm_id: number; vmid: number | null; status: string }> {
+    return this.request('/api/v1/cluster/vms', {
+      method: 'POST', body: JSON.stringify(data),
+    });
+  }
+
   async reconfigureVm(vmid: number, data: {
     name?: string; vcpu_max?: number; ram_mib?: number; disk_gib?: number; vram_mib?: number;
   }): Promise<unknown> {
@@ -531,6 +556,21 @@ class ApiClient {
   async registerVmDns(vmid: number, hostname?: string): Promise<unknown> {
     return this.request<unknown>(`/api/v1/cluster/vms/${vmid}/dns`, {
       method: 'POST', body: JSON.stringify({ hostname: hostname ?? null }),
+    });
+  }
+
+  async exposeService(vmid: number, data: {
+    service_port: number; ext_port?: number; hostname?: string; proto?: string; enable?: boolean;
+  }): Promise<{ url: string | null; pfsense: string; ext_port: number; hostname: string | null }> {
+    return this.request(`/api/v1/cluster/vms/${vmid}/expose`, {
+      method: 'POST', body: JSON.stringify(data),
+    });
+  }
+
+  async addDomain(vmid: number, data: { hostname: string; port: number; enable?: boolean }):
+    Promise<{ url: string | null; hostname: string; port: number }> {
+    return this.request(`/api/v1/cluster/vms/${vmid}/domain`, {
+      method: 'POST', body: JSON.stringify(data),
     });
   }
 

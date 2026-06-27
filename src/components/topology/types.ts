@@ -45,11 +45,11 @@ export const STATUS_META: Record<
 };
 
 export const HOST_ACCENT: Record<string, string> = {
-  emilia: 'from-fuchsia-500/15 border-fuchsia-400/30 text-fuchsia-200',
-  ram: 'from-cyan-500/15 border-cyan-400/30 text-cyan-200',
-  rem: 'from-violet-500/15 border-violet-400/30 text-violet-200',
+  emilia: 'from-fuchsia-50 border-fuchsia-200 text-fuchsia-700',
+  ram: 'from-cyan-50 border-cyan-200 text-cyan-700',
+  rem: 'from-violet-50 border-violet-200 text-violet-700',
 };
 
 export function hostAccent(host: string): string {
-  return HOST_ACCENT[host] ?? 'from-slate-500/15 border-slate-400/30 text-slate-200';
+  return HOST_ACCENT[host] ?? 'from-slate-50 border-slate-200 text-slate-600';
 }

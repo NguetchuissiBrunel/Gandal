@@ -24,10 +24,10 @@ import type { VMNodeData } from './types';
 
 const nodeTypes: NodeTypes = { vm: VMNode, internet: InternetNode, host: HostNode };
 
-const COL_W = 250;
-const COL_GAP = 70;
-const VM_H = 168;
-const TOP_PAD = 150;
+const COL_W = 270;
+const COL_GAP = 110;
+const VM_H = 188;
+const TOP_PAD = 190;
 
 interface Props {
   topology: ClusterTopology;
@@ -64,32 +64,33 @@ function build(
   nodes.push({
     id: 'internet',
     type: 'internet',
-    position: { x: totalW / 2 - 60, y: 0 },
+    position: { x: totalW / 2 - 70, y: 0 },
     data: {},
     draggable: false,
     selectable: false,
   });
 
+  const laneHeight = maxRows * VM_H + 80;
   let col = 0;
   for (const [host, vms] of byHost) {
     const colX = col * (COL_W + COL_GAP);
-    // Région-hôte (fond)
+    // Lane-hôte (conteneur de fond, façon « rack »)
     nodes.push({
       id: `host-${host}`,
       type: 'host',
-      position: { x: colX - 20, y: TOP_PAD - 40 },
+      position: { x: colX - 24, y: TOP_PAD - 56 },
       data: { host, count: vms.length },
       draggable: false,
       selectable: false,
       zIndex: -1,
-      style: { width: COL_W + 10, height: maxRows * VM_H + 70 },
+      style: { width: COL_W + 28, height: laneHeight },
     });
     vms.forEach((vm, i) => {
       const id = `vm-${vm.vmid}`;
       nodes.push({
         id,
         type: 'vm',
-        position: { x: colX + 20, y: TOP_PAD + 30 + i * VM_H },
+        position: { x: colX, y: TOP_PAD + i * VM_H },
         data: {
           vm,
           onToggleInternet: handlers.onToggleInternet,
@@ -97,7 +98,7 @@ function build(
           busy: handlers.busyVmid === vm.vmid,
         } as VMNodeData,
       });
-      // Arête uplink Internet
+      // Arête uplink Internet (animée, dégradé cyan→bleu)
       if (vm.internet) {
         edges.push({
           id: `inet-${vm.vmid}`,
@@ -106,14 +107,15 @@ function build(
           target: 'internet',
           targetHandle: undefined,
           animated: true,
-          style: { stroke: '#38bdf8', strokeWidth: 2 },
+          type: 'smoothstep',
+          style: { stroke: '#38bdf8', strokeWidth: 2.5, opacity: 0.9 },
         });
       }
     });
     col += 1;
   }
 
-  // Arêtes liens réseau VM↔VM
+  // Arêtes liens réseau VM↔VM (cyan, étiquette de groupe)
   topology.links.forEach((l) => {
     edges.push({
       id: `link-${l.source}-${l.target}`,
@@ -122,9 +124,12 @@ function build(
       target: `vm-${l.target}`,
       targetHandle: 'net-in',
       label: l.group_name ?? undefined,
+      type: 'smoothstep',
       style: { stroke: '#22d3ee', strokeWidth: 2 },
-      labelStyle: { fill: '#a5f3fc', fontSize: 10 },
-      labelBgStyle: { fill: '#0e1726' },
+      labelStyle: { fill: '#a5f3fc', fontSize: 10, fontWeight: 600 },
+      labelBgStyle: { fill: '#0e1726', fillOpacity: 0.9 },
+      labelBgPadding: [6, 3] as [number, number],
+      labelBgBorderRadius: 6,
     });
   });
 
