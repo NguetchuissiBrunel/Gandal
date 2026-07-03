@@ -13,10 +13,13 @@ import { Link2, Unlink, X } from 'lucide-react';
 import type { ClusterTopology, TopologyVM } from '@/lib/apiClient';
 import { VMFlowNode } from './VMFlowNode';
 import { RouterNode } from './RouterNode';
+import { GPUNode } from './GPUNode';
 import type { VMNodeData } from './types';
 import { useState } from 'react';
 
-const nodeTypes: NodeTypes = { vm: VMFlowNode, router: RouterNode };
+const nodeTypes: NodeTypes = { vm: VMFlowNode, router: RouterNode, gpu: GPUNode };
+// Vert pour les liens d'accès GPU (dérivés, pointillés, non supprimables).
+const GPU_EDGE_COLOR = '#22c55e';
 const POS_KEY = 'gandal-flow-positions';
 
 interface Props {
@@ -66,17 +69,40 @@ export default function FlowCanvas({ topology, onOpen, onToggleInternet, onLink,
 
   // Fusionne la topologie dans les nœuds SANS réinitialiser les positions (toile libre).
   useEffect(() => {
+    // Pairs réseau par VM : 1 bulle par lien existant (+ 1 bulle libre côté nœud).
+    const peersByVmid = new Map<number, number[]>();
+    topology.links.forEach((l) => {
+      (peersByVmid.get(l.source) ?? peersByVmid.set(l.source, []).get(l.source)!).push(l.target);
+      (peersByVmid.get(l.target) ?? peersByVmid.set(l.target, []).get(l.target)!).push(l.source);
+    });
+
     setNodes((prev) => {
       const prevById = new Map(prev.map((n) => [n.id, n]));
       const next: Node[] = [];
 
-      // Routeur Internet (position libre, persistée)
+      // Routeur Internet (position libre, persistée) — 1 bulle par VM connectée + 1 libre.
       const rId = 'router';
+      const inetPeers = topology.vms.filter((v) => v.internet).map((v) => v.vmid);
       next.push({
         id: rId, type: 'router',
         position: positions.current[rId] ?? prevById.get(rId)?.position ?? { x: 80 + 1.5 * 280, y: 40 },
-        data: {}, draggable: true,
+        data: { inetPeers }, draggable: true,
       });
+
+      // Pool GPU (en bas) — accès DÉRIVÉ : VMs allumées avec un budget VRAM > 0.
+      // Le nœud n'apparaît que s'il existe au moins une telle VM.
+      const gId = 'gpu';
+      const gpuPeers = topology.vms.filter((v) => v.vram_mib > 0 && v.status === 'up').map((v) => v.vmid);
+      if (gpuPeers.length > 0) {
+        const vramTotalGb = Math.round(
+          topology.vms.filter((v) => v.vram_mib > 0 && v.status === 'up')
+            .reduce((s, v) => s + v.vram_mib, 0) / 1024);
+        next.push({
+          id: gId, type: 'gpu',
+          position: positions.current[gId] ?? prevById.get(gId)?.position ?? { x: 80 + 1.5 * 280, y: 220 + Math.ceil(topology.vms.length / 4) * 230 + 80 },
+          data: { gpuPeers, vramTotalGb }, draggable: true,
+        });
+      }
 
       topology.vms.forEach((vm, i) => {
         const id = `vm-${vm.vmid}`;
@@ -85,7 +111,7 @@ export default function FlowCanvas({ topology, onOpen, onToggleInternet, onLink,
           id, type: 'vm', position: pos,
           hidden: dimVmids?.has(vm.vmid),   // filtre canvas → vraiment masquée (position conservée)
           data: { vm, onOpen, onToggleInternet, busy: busyVmid === vm.vmid,
-            highlight: highlightVmids?.has(vm.vmid) } as VMNodeData,
+            highlight: highlightVmids?.has(vm.vmid), peers: peersByVmid.get(vm.vmid) ?? [] } as VMNodeData,
         });
       });
       return next;
@@ -96,7 +122,8 @@ export default function FlowCanvas({ topology, onOpen, onToggleInternet, onLink,
     topology.vms.forEach((vm) => {
       if (vm.internet) {
         e.push({
-          id: `inet-${vm.vmid}`, source: `vm-${vm.vmid}`, sourceHandle: 'inet', target: 'router',
+          id: `inet-${vm.vmid}`, source: `vm-${vm.vmid}`, sourceHandle: 'inet',
+          target: 'router', targetHandle: `inet-${vm.vmid}`,
           animated: true, type: 'default', style: { stroke: edgeColor, strokeWidth: 3.5 },
           hidden: dimVmids?.has(vm.vmid),
         });
@@ -104,13 +131,26 @@ export default function FlowCanvas({ topology, onOpen, onToggleInternet, onLink,
     });
     topology.links.forEach((l) => {
       e.push({
-        id: `link-${l.source}-${l.target}`, source: `vm-${l.source}`, sourceHandle: 'net-out',
-        target: `vm-${l.target}`, targetHandle: 'net-in', type: 'default',
+        id: `link-${l.source}-${l.target}`, source: `vm-${l.source}`, sourceHandle: `net-${l.target}`,
+        target: `vm-${l.target}`, targetHandle: `net-${l.source}`, type: 'default',
         label: l.group_name ?? undefined, style: { stroke: edgeColor, strokeWidth: 3.5 },
         labelStyle: { fill: edgeColor, fontSize: 10, fontWeight: 600 },
         labelBgStyle: { fill: dark ? '#1e293b' : '#e2e8f0', fillOpacity: 0.95 }, labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 6,
         hidden: dimVmids?.has(l.source) || dimVmids?.has(l.target),
       });
+    });
+    // Liens d'accès GPU : VERT + POINTILLÉS, animés. Dérivés (VRAM>0 + allumée),
+    // donc NON supprimables (deletable:false) — ils disparaissent quand la VM s'éteint.
+    topology.vms.forEach((vm) => {
+      if (vm.vram_mib > 0 && vm.status === 'up') {
+        e.push({
+          id: `gpu-${vm.vmid}`, source: `vm-${vm.vmid}`, sourceHandle: 'gpu',
+          target: 'gpu', targetHandle: `gpu-${vm.vmid}`,
+          animated: true, type: 'default', deletable: false, selectable: false, focusable: false,
+          style: { stroke: GPU_EDGE_COLOR, strokeWidth: 3, strokeDasharray: '6 4' },
+          hidden: dimVmids?.has(vm.vmid),
+        });
+      }
     });
     setEdges(e);
   }, [topology, onOpen, onToggleInternet, busyVmid, setNodes, setEdges, edgeColor, dark, highlightVmids, dimVmids]);
@@ -132,6 +172,8 @@ export default function FlowCanvas({ topology, onOpen, onToggleInternet, onLink,
   // extrémités est le routeur → Internet ; sinon lien réseau entre les 2 VMs.
   const onConnect = useCallback((c: Connection) => {
     const ends = [c.source, c.target];
+    // L'accès GPU est dérivé (VRAM>0 + allumée), jamais posé à la main → on ignore.
+    if (ends.includes('gpu')) return;
     if (ends.includes('router')) {
       const vmEnd = ends.find((x) => x?.startsWith('vm-'));
       if (!vmEnd) return;
@@ -204,7 +246,7 @@ export default function FlowCanvas({ topology, onOpen, onToggleInternet, onLink,
         onInit={(inst) => { rf.current = inst; }}
         onConnect={onConnect} onEdgeClick={(_, e) => disconnect(e)} onEdgesDelete={onEdgesDelete}
         onNodeClick={onNodeClick} onSelectionChange={onSelectionChange}
-        connectionMode={ConnectionMode.Loose}
+        connectionMode={ConnectionMode.Loose} connectionRadius={90}
         fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.1}
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{ type: 'default', style: { stroke: edgeColor, strokeWidth: 3.5 } }}
@@ -231,7 +273,7 @@ export default function FlowCanvas({ topology, onOpen, onToggleInternet, onLink,
         <Background id="grid" variant={BackgroundVariant.Lines} gap={40} size={1} color={dark ? "rgba(148,163,184,0.10)" : "rgba(37,99,235,0.06)"} />
         <Background id="dots" variant={BackgroundVariant.Dots} gap={40} size={2} color={dark ? "rgba(148,163,184,0.25)" : "rgba(37,99,235,0.18)"} offset={20} />
         <MiniMap pannable zoomable maskColor={dark ? 'rgba(0,0,0,0.5)' : 'rgba(37,99,235,0.08)'}
-          nodeColor={(n) => (n.type === 'router' ? '#0ea5e9' : '#2563eb')}
+          nodeColor={(n) => (n.type === 'router' ? '#0ea5e9' : n.type === 'gpu' ? '#22c55e' : '#2563eb')}
           className="!rounded-xl !shadow-sm !backdrop-blur !bg-white/80 !border !border-blue-200/70 dark:!bg-[#141414]/90 dark:!border-[#2a2a2a]" />
         <Controls className="!rounded-xl !shadow-sm !bg-white !border !border-slate-200 [&>button]:!bg-white [&>button]:!border-slate-200 [&>button]:!text-slate-500 [&>button:hover]:!bg-slate-50 dark:!bg-[#141414] dark:!border-[#2a2a2a] dark:[&>button]:!bg-[#1c1c1c] dark:[&>button]:!border-[#2a2a2a] dark:[&>button]:!text-slate-400 dark:[&>button:hover]:!bg-[#2a2a2a]" />
       </ReactFlow>

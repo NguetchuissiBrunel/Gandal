@@ -9,6 +9,8 @@ import {
   Loader2,
   Trash2,
   Pencil,
+  Ban,
+  CheckCircle2,
   X,
   Save,
   Eye,
@@ -21,11 +23,15 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import { useFeedback } from '@/contexts/FeedbackContext';
 import { getApiErrorMessage } from '@/lib/apiError';
 
+// Les valeurs doivent correspondre EXACTEMENT aux littéraux backend
+// (TeacherRole = "Teacher" | "Admin" | "SuperAdmin").
 const ROLES = [
-  { value: 'teacher', label: 'Enseignant (validation inscriptions)' },
-  { value: 'admin', label: 'Administrateur' },
-  { value: 'superadmin', label: 'Super administrateur' },
-];
+  { value: 'Teacher', label: 'Enseignant (validation inscriptions)' },
+  { value: 'Admin', label: 'Administrateur' },
+  { value: 'SuperAdmin', label: 'Super administrateur' },
+] as const;
+
+type RoleValue = (typeof ROLES)[number]['value'];
 
 export default function TeachersPanel() {
   const { confirm } = useFeedback();
@@ -40,12 +46,12 @@ export default function TeachersPanel() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('teacher');
+  const [role, setRole] = useState<RoleValue>('Teacher');
 
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<{ username: string; email: string; role: RoleValue }>({
     username: '',
     email: '',
-    role: 'teacher',
+    role: 'Teacher',
   });
 
   const loadTeachers = async () => {
@@ -100,7 +106,7 @@ export default function TeachersPanel() {
     setEditForm({
       username: t.username,
       email: t.email,
-      role: t.role,
+      role: t.role as RoleValue,
     });
   };
 
@@ -137,6 +143,25 @@ export default function TeachersPanel() {
       await loadTeachers();
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Suppression impossible'));
+      setSuccess('');
+    }
+  };
+
+  const handleToggleActive = async (t: TeacherRead) => {
+    const blocking = t.is_active !== false;
+    setError('');
+    setSuccess('');
+    try {
+      if (blocking) {
+        await apiClient.blockTeacher(t.id);
+        setSuccess('Enseignant bloqué.');
+      } else {
+        await apiClient.unblockTeacher(t.id);
+        setSuccess('Enseignant réactivé.');
+      }
+      await loadTeachers();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Action impossible'));
       setSuccess('');
     }
   };
@@ -195,21 +220,6 @@ export default function TeachersPanel() {
             inputClassName={inputClass.replace('pr-4', 'pr-11')}
             autoComplete="new-password"
           />
-          <div className="relative">
-            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className={`${inputClass} cursor-pointer appearance-none`}
-            >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <button
             type="submit"
             disabled={submitting}
@@ -256,17 +266,6 @@ export default function TeachersPanel() {
                     value={editForm.email}
                     onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
                   />
-                  <select
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm sm:col-span-2"
-                    value={editForm.role}
-                    onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
                   <div className="sm:col-span-2 flex gap-2">
                     <button
                       type="button"
@@ -287,7 +286,14 @@ export default function TeachersPanel() {
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="font-bold text-slate-900">{t.username}</p>
+                    <p className="font-bold text-slate-900 flex items-center gap-2">
+                      {t.username}
+                      {t.is_active === false && (
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          Bloqué
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-slate-500">{t.email}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -310,14 +316,32 @@ export default function TeachersPanel() {
                     >
                       <Pencil className="w-4 h-4 text-slate-600" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(t)}
-                      className="p-2 rounded-lg border border-red-200 hover:bg-red-50 cursor-pointer"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </button>
+                    {t.role !== 'SuperAdmin' && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(t)}
+                        className={`p-2 rounded-lg border cursor-pointer ${
+                          t.is_active === false
+                            ? 'border-emerald-200 hover:bg-emerald-50'
+                            : 'border-amber-200 hover:bg-amber-50'
+                        }`}
+                        title={t.is_active === false ? 'Réactiver' : 'Bloquer'}
+                      >
+                        {t.is_active === false
+                          ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          : <Ban className="w-4 h-4 text-amber-600" />}
+                      </button>
+                    )}
+                    {t.role !== 'SuperAdmin' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(t)}
+                        className="p-2 rounded-lg border border-red-200 hover:bg-red-50 cursor-pointer"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

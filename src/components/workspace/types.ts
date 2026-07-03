@@ -26,5 +26,6 @@ export interface VMNodeData {
   busy?: boolean;
   highlight?: boolean;   // résultat de recherche → clignote
   dimmed?: boolean;      // hors filtre canvas → estompée
+  peers?: number[];      // vmids déjà reliés (1 bulle par lien + 1 bulle libre)
   [key: string]: unknown;
 }

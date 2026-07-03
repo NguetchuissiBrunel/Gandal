@@ -59,3 +59,24 @@ html.dark body {
 /* ── Hide scrollbar (cross-browser) for horizontal tab strips on mobile ── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Fond quadrillé du workspace, réutilisable sur toutes les vues (clair + sombre) ──
+   Reproduit exactement la toile : dégradé + lignes + points, en tons bleus. */
+.omega-grid-bg {
+  background-color: #f4f8ff;
+  background-image:
+    linear-gradient(160deg, #ffffff 0%, #f4f8ff 60%, #eef4ff 100%),
+    linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    radial-gradient(rgba(37, 99, 235, 0.18) 1.5px, transparent 1.5px);
+  background-size: 100% 100%, 40px 40px, 40px 40px, 40px 40px;
+  background-position: 0 0, 0 0, 0 0, 20px 20px;
+}
+html.dark .omega-grid-bg {
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(160deg, #0a0a0a 0%, #0c1018 60%, #0a0e16 100%),
+    linear-gradient(rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+    radial-gradient(rgba(148, 163, 184, 0.22) 1.5px, transparent 1.5px);
+}

@@ -41,6 +41,7 @@ export type VMRead = components['schemas']['VMRead'];
 export type RCreateVMRead = components['schemas']['RCreateVMRead'];
 export type RDeleteVMRead = components['schemas']['RDeleteVMRead'];
 export type RAccountRead = components['schemas']['RAccountRead'];
+export type RDomainRead = components['schemas']['RDomainRead'];
 export type PublicationRead = components['schemas']['PublicationRead'];
 export type AdminCreate = components['schemas']['AdminCreate'];
 export type DNSEntryRead = components['schemas']['DNSEntryRead'];
@@ -58,6 +59,7 @@ export interface TopologyVM {
   maxcpu: number | null;
   maxmem: number | null;
   vram_mib: number;
+  disk_gib: number | null;
   owner_id: number | null;
   owner_name: string | null;
 }
@@ -154,6 +156,18 @@ class ApiClient {
       headers,
     });
 
+    // Token devenu invalide/expiré : déconnexion automatique + retour au login,
+    // SANS toast « token invalide ». On ne déclenche pas sur l'échec du login lui-même
+    // (401 = mauvais identifiants) ni si aucun token n'était présent.
+    if (response.status === 401 && this.token && !path.includes('/auth/login')) {
+      this.clearToken();
+      if (typeof window !== 'undefined') {
+        const ret = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.assign(`/login?expired=1&return=${ret}`);
+      }
+      throw new Error('SESSION_EXPIRED');
+    }
+
     if (!response.ok) {
       let errorMsg = `HTTP Error ${response.status}`;
       try {
@@ -237,6 +251,16 @@ class ApiClient {
     });
   }
 
+  /** Bloque (désactive) un étudiant. Superviseur ou super admin. */
+  async blockStudent(id: number): Promise<StudentRead> {
+    return this.request<StudentRead>(`/api/v1/users/students/${id}/block`, { method: 'POST' });
+  }
+
+  /** Réactive un étudiant bloqué (ou valide un compte en attente). */
+  async unblockStudent(id: number): Promise<StudentRead> {
+    return this.request<StudentRead>(`/api/v1/users/students/${id}/unblock`, { method: 'POST' });
+  }
+
   // --- Users / Teachers ---
   async signupTeacher(teacherData: components['schemas']['TeacherCreate']): Promise<TeacherRead> {
     return this.request<TeacherRead>('/api/v1/users/teachers', {
@@ -250,6 +274,11 @@ class ApiClient {
       `/api/v1/users/teachers${buildListQuery(params)}`,
     );
     return { items: response.items || [], total: response.total || 0 };
+  }
+
+  /** Liste publique (sans auth) des enseignants pour le formulaire d'inscription. */
+  async getTeachersPublic(): Promise<{ id: number; username: string }[]> {
+    return this.request<{ id: number; username: string }[]>('/api/v1/users/teachers/public');
   }
 
   async getTeacher(id: number): Promise<TeacherRead> {
@@ -267,6 +296,16 @@ class ApiClient {
     await this.request<void>(`/api/v1/users/teachers/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  /** Bloque (désactive) un enseignant. Super admin uniquement. */
+  async blockTeacher(id: number): Promise<TeacherRead> {
+    return this.request<TeacherRead>(`/api/v1/users/teachers/${id}/block`, { method: 'POST' });
+  }
+
+  /** Réactive un enseignant bloqué. Super admin uniquement. */
+  async unblockTeacher(id: number): Promise<TeacherRead> {
+    return this.request<TeacherRead>(`/api/v1/users/teachers/${id}/unblock`, { method: 'POST' });
   }
 
   // --- VMs ---
@@ -321,11 +360,11 @@ class ApiClient {
 
   // --- Requests (Requetes) ---
   async getRequests(params?: { page?: number; size?: number }): Promise<{
-    items: (RCreateVMRead | RDeleteVMRead | RAccountRead)[];
+    items: (RCreateVMRead | RDeleteVMRead | RAccountRead | RDomainRead)[];
     total: number;
   }> {
     const response = await this.request<
-      components['schemas']['PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__']
+      components['schemas']['PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__RDomainRead__']
     >(`/api/v1/requetes${buildListQuery(params)}`);
     return { items: response.items || [], total: response.total || 0 };
   }
@@ -426,6 +465,31 @@ class ApiClient {
   async deletePublication(publicationId: number): Promise<void> {
     await this.request<void>(`/api/v1/publications/${publicationId}`, {
       method: 'DELETE',
+    });
+  }
+
+  /** Demandes de publication en attente de validation (super admin). */
+  async getPendingPublications(params?: { page?: number; size?: number }): Promise<{
+    items: PublicationRead[];
+    total: number;
+  }> {
+    const response = await this.request<components['schemas']['PaginatedResponse_PublicationRead_']>(
+      `/api/v1/publications/pending${buildListQuery(params)}`,
+    );
+    return { items: response.items || [], total: response.total || 0 };
+  }
+
+  /** Valide une demande → la publication apparaît au catalogue (super admin). */
+  async validatePublication(publicationId: number): Promise<PublicationRead> {
+    return this.request<PublicationRead>(`/api/v1/publications/${publicationId}/validate`, {
+      method: 'POST',
+    });
+  }
+
+  /** Rejette une demande de publication (super admin). */
+  async rejectPublication(publicationId: number): Promise<PublicationRead> {
+    return this.request<PublicationRead>(`/api/v1/publications/${publicationId}/reject`, {
+      method: 'POST',
     });
   }
 

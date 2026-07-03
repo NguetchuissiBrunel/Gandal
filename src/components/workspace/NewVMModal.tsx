@@ -17,13 +17,17 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreate: (v: NewVMValues) => Promise<void>;
+  /** true pour un étudiant : masque Internet / GPU / Always-on (réservés à l'enseignant). */
+  restricted?: boolean;
 }
 
 /**
  * Pop-up de création d'une VM (déclenché par « + »). Pas de choix d'OS : le projet
  * impose son image (Debian/omega préparée). Caractéristiques par sliders + options.
+ * Un étudiant ne peut pas s'attribuer internet/GPU/always-on (restricted) — c'est
+ * l'enseignant/admin qui les accorde après coup.
  */
-export default function NewVMModal({ open, onClose, onCreate }: Props) {
+export default function NewVMModal({ open, onClose, onCreate, restricted = false }: Props) {
   const [v, setV] = useState<NewVMValues>({
     name: '', vcpu: 4, ram_gb: 4, disk_gb: 20, vram_gb: 0, internet: false, autostart: false,
   });
@@ -77,15 +81,23 @@ export default function NewVMModal({ open, onClose, onCreate }: Props) {
             onChange={(n) => setV({ ...v, ram_gb: n })} suffix="Go" />
           <Slider icon={<HardDrive size={14} />} label="Disque" value={v.disk_gb} min={10} max={200} step={5}
             onChange={(n) => setV({ ...v, disk_gb: n })} suffix="Go" />
-          <Slider icon={<Sparkles size={14} />} label="GPU (VRAM)" value={v.vram_gb} min={0} max={24}
-            onChange={(n) => setV({ ...v, vram_gb: n })} suffix="Go" hint="0 = pas de GPU" />
+          {!restricted && (
+            <Slider icon={<Sparkles size={14} />} label="GPU (VRAM)" value={v.vram_gb} min={0} max={24}
+              onChange={(n) => setV({ ...v, vram_gb: n })} suffix="Go" hint="0 = pas de GPU" />
+          )}
 
-          <div className="flex gap-2 pt-1">
-            <Toggle icon={<Globe size={14} />} label="Internet" on={v.internet}
-              onClick={() => setV({ ...v, internet: !v.internet })} />
-            <Toggle icon={<Power size={14} />} label="Always-on" on={v.autostart}
-              onClick={() => setV({ ...v, autostart: !v.autostart })} />
-          </div>
+          {!restricted ? (
+            <div className="flex gap-2 pt-1">
+              <Toggle icon={<Globe size={14} />} label="Internet" on={v.internet}
+                onClick={() => setV({ ...v, internet: !v.internet })} />
+              <Toggle icon={<Power size={14} />} label="Always-on" on={v.autostart}
+                onClick={() => setV({ ...v, autostart: !v.autostart })} />
+            </div>
+          ) : (
+            <p className="rounded-lg bg-slate-50 dark:bg-[#1c1c1c] px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400">
+              Internet, GPU et always-on sont accordés par votre enseignant après création.
+            </p>
+          )}
         </div>
 
         {/* Pied */}

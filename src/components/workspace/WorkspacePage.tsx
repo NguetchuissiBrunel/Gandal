@@ -16,7 +16,12 @@ export default function WorkspacePage() {
       try {
         const me: any = await apiClient.getMe();
         const type = (me.type || '').toLowerCase();
-        const role = type === 'superadmin' || type === 'admin' ? 'admin'
+        // Le super admin est un Teacher (type="teacher") avec role="SuperAdmin" :
+        // on doit regarder `role` en priorité, sinon il est traité comme un simple
+        // enseignant et perd ses droits (validation des publications, etc.).
+        const subRole = (me.role || '').toLowerCase();
+        const role = type === 'superadmin' || type === 'admin'
+            || subRole === 'superadmin' || subRole === 'admin' ? 'admin'
           : type === 'teacher' ? 'teacher' : 'student';
         setUser({ username: me.username || 'utilisateur', role });
       } catch {

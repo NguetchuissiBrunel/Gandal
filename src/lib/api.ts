@@ -13,7 +13,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
+        /**
+         * Public - Login
+         * @description **Rôle autorisé :** Public
+         */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
@@ -31,8 +34,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Register Admin
-         * @description Crée un compte administrateur.
+         * Public + SUPERADMIN_SECRET_KEY - Register Admin
+         * @description **Rôle autorisé :** Public + SUPERADMIN_SECRET_KEY
+         *
+         *     Crée un compte administrateur.
          *
          *     Endpoint de bootstrap : ne requiert pas d'authentification préalable, mais
          *     exige la clé secrète SuperAdmin (`secret_key`) définie dans la configuration
@@ -52,8 +57,33 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Me */
+        /**
+         * Authentifié - Me
+         * @description **Rôle autorisé :** Authentifié
+         */
         get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/teachers/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Teachers Public
+         * @description PUBLIC (sans authentification) : liste des enseignants pour le formulaire
+         *     d'inscription, afin que l'étudiant choisisse son superviseur. Renvoie
+         *     uniquement id + nom. Exclut le super admin (qui n'encadre pas d'étudiants).
+         */
+        get: operations["list_teachers_public_api_v1_users_teachers_public_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -69,10 +99,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Students */
+        /**
+         * Admin/SuperAdmin - List Students
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         */
         get: operations["list_students_api_v1_users_students_get"];
         put?: never;
-        /** Create Student */
+        /**
+         * Admin/SuperAdmin - Create Student
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         *
+         *     Un enseignant (ou le super admin) crée un étudiant. L'étudiant est rattaché
+         *     à l'enseignant créateur comme superviseur (le super admin peut préciser un
+         *     autre superviseur via supervisor_id) et son compte est actif immédiatement.
+         */
         post: operations["create_student_api_v1_users_students_post"];
         delete?: never;
         options?: never;
@@ -87,16 +127,67 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Student */
+        /**
+         * Admin/SuperAdmin - Get Student
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         */
         get: operations["get_student_api_v1_users_students__student_id__get"];
         put?: never;
         post?: never;
-        /** Delete Student */
+        /**
+         * Admin/SuperAdmin - Delete Student
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         *
+         *     Supprime définitivement un étudiant + ses VMs. Superviseur ou super admin.
+         */
         delete: operations["delete_student_api_v1_users_students__student_id__delete"];
         options?: never;
         head?: never;
-        /** Update Student */
+        /**
+         * Admin/SuperAdmin - Update Student
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         */
         patch: operations["update_student_api_v1_users_students__student_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/users/students/{student_id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block Student
+         * @description Bloque (désactive) un étudiant. Superviseur ou super admin uniquement.
+         */
+        post: operations["block_student_api_v1_users_students__student_id__block_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/students/{student_id}/unblock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unblock Student
+         * @description Réactive un étudiant. Superviseur ou super admin uniquement.
+         */
+        post: operations["unblock_student_api_v1_users_students__student_id__unblock_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users/teachers": {
@@ -106,10 +197,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Teachers */
+        /**
+         * Authentifié - List Teachers
+         * @description **Rôle autorisé :** Authentifié
+         */
         get: operations["list_teachers_api_v1_users_teachers_get"];
         put?: never;
-        /** Create Teacher */
+        /**
+         * Admin/SuperAdmin - Create Teacher
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         *
+         *     Seul le super admin crée des enseignants. Un enseignant créé est toujours
+         *     un simple « Teacher » (validation de ses propres étudiants) — il n'y a qu'un
+         *     seul super admin, créé au bootstrap (`/auth/register-admin`).
+         */
         post: operations["create_teacher_api_v1_users_teachers_post"];
         delete?: never;
         options?: never;
@@ -124,16 +225,61 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Teacher */
+        /**
+         * Admin/SuperAdmin - Get Teacher
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         */
         get: operations["get_teacher_api_v1_users_teachers__teacher_id__get"];
         put?: never;
         post?: never;
-        /** Delete Teacher */
+        /**
+         * Admin/SuperAdmin - Delete Teacher
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         *
+         *     Seul le super admin supprime un enseignant (+ ses VMs).
+         */
         delete: operations["delete_teacher_api_v1_users_teachers__teacher_id__delete"];
         options?: never;
         head?: never;
-        /** Update Teacher */
+        /**
+         * Admin/SuperAdmin - Update Teacher
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         */
         patch: operations["update_teacher_api_v1_users_teachers__teacher_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/users/teachers/{teacher_id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Block Teacher */
+        post: operations["block_teacher_api_v1_users_teachers__teacher_id__block_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/teachers/{teacher_id}/unblock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unblock Teacher */
+        post: operations["unblock_teacher_api_v1_users_teachers__teacher_id__unblock_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/vms": {
@@ -143,10 +289,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Vms */
+        /**
+         * Authentifié - List Vms
+         * @description **Rôle autorisé :** Authentifié
+         */
         get: operations["list_vms_api_v1_vms_get"];
         put?: never;
-        /** Create Vm */
+        /**
+         * Admin/SuperAdmin - Create Vm
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         */
         post: operations["create_vm_api_v1_vms_post"];
         delete?: never;
         options?: never;
@@ -161,15 +313,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Vm */
+        /**
+         * Propriétaire ou Admin/SuperAdmin - Get Vm
+         * @description **Rôle autorisé :** Propriétaire ou Admin/SuperAdmin
+         */
         get: operations["get_vm_api_v1_vms__vm_id__get"];
         put?: never;
         post?: never;
-        /** Delete Vm */
+        /**
+         * Propriétaire ou Admin/SuperAdmin - Delete Vm
+         * @description **Rôle autorisé :** Propriétaire ou Admin/SuperAdmin
+         */
         delete: operations["delete_vm_api_v1_vms__vm_id__delete"];
         options?: never;
         head?: never;
-        /** Update Vm */
+        /**
+         * Propriétaire ou Admin/SuperAdmin - Update Vm
+         * @description **Rôle autorisé :** Propriétaire ou Admin/SuperAdmin
+         */
         patch: operations["update_vm_api_v1_vms__vm_id__patch"];
         trace?: never;
     };
@@ -182,7 +343,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start Vm */
+        /**
+         * Propriétaire ou Admin/SuperAdmin - Start Vm
+         * @description **Rôle autorisé :** Propriétaire ou Admin/SuperAdmin
+         */
         post: operations["start_vm_api_v1_vms__vm_id__start_post"];
         delete?: never;
         options?: never;
@@ -199,7 +363,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Stop Vm */
+        /**
+         * Propriétaire ou Admin/SuperAdmin - Stop Vm
+         * @description **Rôle autorisé :** Propriétaire ou Admin/SuperAdmin
+         */
         post: operations["stop_vm_api_v1_vms__vm_id__stop_post"];
         delete?: never;
         options?: never;
@@ -216,7 +383,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Pause Vm */
+        /**
+         * Propriétaire ou Admin/SuperAdmin - Pause Vm
+         * @description **Rôle autorisé :** Propriétaire ou Admin/SuperAdmin
+         */
         post: operations["pause_vm_api_v1_vms__vm_id__pause_post"];
         delete?: never;
         options?: never;
@@ -233,7 +403,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Vm Request */
+        /**
+         * Student - Create Vm Request
+         * @description **Rôle autorisé :** Student
+         */
         post: operations["create_vm_request_api_v1_requetes_create_vm_post"];
         delete?: never;
         options?: never;
@@ -250,7 +423,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Delete Vm Request */
+        /**
+         * Student propriétaire de la VM - Delete Vm Request
+         * @description **Rôle autorisé :** Student propriétaire de la VM
+         */
         post: operations["delete_vm_request_api_v1_requetes_delete_vm_post"];
         delete?: never;
         options?: never;
@@ -267,8 +443,34 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Account Request */
+        /**
+         * Student - Account Request
+         * @description **Rôle autorisé :** Student
+         *
+         *     Demande d'inscription (auto-signup). PUBLIC : accessible sans être connecté
+         *     (un nouvel étudiant n'a pas encore de compte). L'enseignant choisi la valide.
+         */
         post: operations["account_request_api_v1_requetes_account_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requetes/domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Domain Request
+         * @description Demande de nom de domaine: nom_choisi → http vers VM_IP:port (reverse-proxy).
+         */
+        post: operations["domain_request_api_v1_requetes_domain_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -282,7 +484,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Requetes */
+        /**
+         * Authentifié - List Requetes
+         * @description **Rôle autorisé :** Authentifié
+         */
         get: operations["list_requetes_api_v1_requetes_get"];
         put?: never;
         post?: never;
@@ -299,7 +504,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Requete */
+        /**
+         * Étudiant auteur, enseignant assigné ou Admin/SuperAdmin - Get Requete
+         * @description **Rôle autorisé :** Étudiant auteur, enseignant assigné ou Admin/SuperAdmin
+         */
         get: operations["get_requete_api_v1_requetes__requete_id__get"];
         put?: never;
         post?: never;
@@ -318,7 +526,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approve Requete */
+        /**
+         * Enseignant assigné ou Admin/SuperAdmin - Approve Requete
+         * @description **Rôle autorisé :** Enseignant assigné ou Admin/SuperAdmin
+         */
         post: operations["approve_requete_api_v1_requetes__requete_id__approve_post"];
         delete?: never;
         options?: never;
@@ -335,7 +546,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reject Requete */
+        /**
+         * Enseignant assigné ou Admin/SuperAdmin - Reject Requete
+         * @description **Rôle autorisé :** Enseignant assigné ou Admin/SuperAdmin
+         */
         post: operations["reject_requete_api_v1_requetes__requete_id__reject_post"];
         delete?: never;
         options?: never;
@@ -350,7 +564,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Public Publications */
+        /**
+         * Public - List Public Publications
+         * @description **Rôle autorisé :** Public
+         */
         get: operations["list_public_publications_api_v1_publications_public_get"];
         put?: never;
         post?: never;
@@ -367,11 +584,77 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Publications */
+        /**
+         * Authentifié - List Publications
+         * @description **Rôle autorisé :** Authentifié
+         */
         get: operations["list_publications_api_v1_publications_get"];
         put?: never;
-        /** Create Publication */
+        /**
+         * Teacher ou Admin/SuperAdmin - Create Publication
+         * @description **Rôle autorisé :** Teacher ou Admin/SuperAdmin
+         */
         post: operations["create_publication_api_v1_publications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/publications/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pending Publications
+         * @description Demandes de publication en attente de validation (super admin).
+         */
+        get: operations["list_pending_publications_api_v1_publications_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/publications/{publication_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Publication
+         * @description Valide une publication → elle apparaît au catalogue (super admin).
+         */
+        post: operations["validate_publication_api_v1_publications__publication_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/publications/{publication_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Publication
+         * @description Rejette une demande de publication (super admin).
+         */
+        post: operations["reject_publication_api_v1_publications__publication_id__reject_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -385,15 +668,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Publication */
+        /**
+         * Authentifié - Get Publication
+         * @description **Rôle autorisé :** Authentifié
+         */
         get: operations["get_publication_api_v1_publications__publication_id__get"];
         put?: never;
         post?: never;
-        /** Delete Publication */
+        /**
+         * Enseignant propriétaire ou Admin/SuperAdmin - Delete Publication
+         * @description **Rôle autorisé :** Enseignant propriétaire ou Admin/SuperAdmin
+         */
         delete: operations["delete_publication_api_v1_publications__publication_id__delete"];
         options?: never;
         head?: never;
-        /** Update Publication */
+        /**
+         * Enseignant propriétaire ou Admin/SuperAdmin - Update Publication
+         * @description **Rôle autorisé :** Enseignant propriétaire ou Admin/SuperAdmin
+         */
         patch: operations["update_publication_api_v1_publications__publication_id__patch"];
         trace?: never;
     };
@@ -405,14 +697,18 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List All Dns
-         * @description Liste toutes les entrées DNS du système (admin uniquement).
+         * Admin/SuperAdmin - List All Dns
+         * @description **Rôle autorisé :** Admin/SuperAdmin
+         *
+         *     Liste toutes les entrées DNS du système (admin uniquement).
          */
         get: operations["list_all_dns_api_v1_dns_get"];
         put?: never;
         /**
-         * Create Dns
-         * @description Crée une nouvelle entrée DNS pour une VM.
+         * Propriétaire de la VM ou Admin/SuperAdmin - Create Dns
+         * @description **Rôle autorisé :** Propriétaire de la VM ou Admin/SuperAdmin
+         *
+         *     Crée une nouvelle entrée DNS pour une VM.
          *
          *     - Le hostname doit être un FQDN valide (ex: `api.projet.dc.enspy.cm`).
          *     - Un hostname ne peut être attribué qu'à une seule VM à la fois.
@@ -433,8 +729,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Dns For Vm
-         * @description Liste toutes les entrées DNS associées à une VM donnée.
+         * Propriétaire de la VM ou Admin/SuperAdmin - List Dns For Vm
+         * @description **Rôle autorisé :** Propriétaire de la VM ou Admin/SuperAdmin
+         *
+         *     Liste toutes les entrées DNS associées à une VM donnée.
          */
         get: operations["list_dns_for_vm_api_v1_dns_vms__vm_id__get"];
         put?: never;
@@ -453,24 +751,414 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Dns
-         * @description Récupère une entrée DNS par son identifiant.
+         * Propriétaire de la VM ou Admin/SuperAdmin - Get Dns
+         * @description **Rôle autorisé :** Propriétaire de la VM ou Admin/SuperAdmin
+         *
+         *     Récupère une entrée DNS par son identifiant.
          */
         get: operations["get_dns_api_v1_dns__dns_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Dns
-         * @description Supprime une entrée DNS.
+         * Propriétaire de la VM ou Admin/SuperAdmin - Delete Dns
+         * @description **Rôle autorisé :** Propriétaire de la VM ou Admin/SuperAdmin
+         *
+         *     Supprime une entrée DNS.
          */
         delete: operations["delete_dns_api_v1_dns__dns_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Dns
-         * @description Modifie le hostname d'une entrée DNS existante.
+         * Propriétaire de la VM ou Admin/SuperAdmin - Update Dns
+         * @description **Rôle autorisé :** Propriétaire de la VM ou Admin/SuperAdmin
+         *
+         *     Modifie le hostname d'une entrée DNS existante.
          */
         patch: operations["update_dns_api_v1_dns__dns_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cluster/topology": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Topology
+         * @description Topologie pour la toile. Étudiant = ses VMs ; enseignant/admin = toute la flotte.
+         */
+        get: operations["get_topology_api_v1_cluster_topology_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Vm
+         * @description Crée et provisionne une VM directement (bouton « + » de la toile).
+         *
+         *     RÉSERVÉ AUX ENSEIGNANTS/ADMINS. Un étudiant ne crée jamais une VM
+         *     directement : il en fait la DEMANDE (`POST /requetes/create-vm`), que son
+         *     enseignant superviseur valide.
+         */
+        post: operations["create_vm_api_v1_cluster_vms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/distribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Distribution
+         * @description Occupation par nœud vs cible 1/2/2 (lecture seule).
+         */
+        get: operations["get_distribution_api_v1_cluster_distribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/gpu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gpu Status
+         * @description État GPU par nœud (VRAM, utilisation, température).
+         */
+        get: operations["gpu_status_api_v1_cluster_gpu_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/migrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Migrations
+         * @description Historique récent des migrations de VMs (live-migration).
+         */
+        get: operations["migrations_api_v1_cluster_migrations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile
+         * @description Déclenche un tick de réconciliation (migre au plus 1 VM vers la cible).
+         */
+        post: operations["reconcile_api_v1_cluster_reconcile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vm_id}/internet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Toggle Internet
+         * @description Connecte/déconnecte une VM à internet (geste ludique de la toile).
+         */
+        post: operations["toggle_internet_api_v1_cluster_vms__vm_id__internet_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vm_id}/llm-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Toggle Llm Access
+         * @description Ouvre/ferme l'accès ÉTROIT d'une VM à la gateway LLM (reste isolée par ailleurs).
+         */
+        post: operations["toggle_llm_access_api_v1_cluster_vms__vm_id__llm_access_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/llm-access/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile Llm Access
+         * @description Réconcilie l'accès LLM : toute VM démarrée avec vram>0 obtient l'accès gateway.
+         */
+        post: operations["reconcile_llm_access_api_v1_cluster_llm_access_reconcile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Vm
+         * @description Détruit une VM par VMID (DNS retiré + destroy purge) et retire la ligne DB.
+         */
+        delete: operations["delete_vm_api_v1_cluster_vms__vmid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Vm
+         * @description Démarre une VM (par VMID Proxmox — espace de la toile).
+         */
+        post: operations["start_vm_api_v1_cluster_vms__vmid__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Vm
+         * @description Arrête une VM (par VMID Proxmox).
+         */
+        post: operations["stop_vm_api_v1_cluster_vms__vmid__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/reconfigure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconfigure Vm
+         * @description Modifie les caractéristiques d'une VM (vCPU max, RAM, disque, VRAM, nom).
+         */
+        post: operations["reconfigure_vm_api_v1_cluster_vms__vmid__reconfigure_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/gpu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Gpu
+         * @description Alloue ou retire du GPU (VRAM partagée via proxy, pas de passthrough).
+         */
+        post: operations["set_gpu_api_v1_cluster_vms__vmid__gpu_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/autostart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Autostart
+         * @description Active/désactive le redémarrage automatique (always-on).
+         */
+        post: operations["set_autostart_api_v1_cluster_vms__vmid__autostart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/expose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Expose Service
+         * @description Publie un service de la VM vers le LAN (port-forward pfSense).
+         */
+        post: operations["expose_service_api_v1_cluster_vms__vmid__expose_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Domain
+         * @description Publie un service VM sous un nom de domaine SANS port (reverse proxy).
+         */
+        post: operations["add_domain_api_v1_cluster_vms__vmid__domain_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/vms/{vmid}/dns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Dns
+         * @description Enregistre/renomme l'entrée DNS de la VM (zone enspy-gi.gandal).
+         */
+        post: operations["register_dns_api_v1_cluster_vms__vmid__dns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/network/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Network Link
+         * @description Relie (maillage) ou isole un groupe de VMs — arêtes de la toile.
+         */
+        post: operations["network_link_api_v1_cluster_network_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/health": {
@@ -480,7 +1168,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health */
+        /**
+         * Public - Health
+         * @description **Rôle autorisé :** Public
+         */
         get: operations["health_health_get"];
         put?: never;
         post?: never;
@@ -497,7 +1188,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Ready */
+        /**
+         * Public - Ready
+         * @description **Rôle autorisé :** Public
+         */
         get: operations["ready_ready_get"];
         put?: never;
         post?: never;
@@ -542,6 +1236,67 @@ export interface components {
              */
             ssh_public_key: string;
         };
+        /** AutostartRequest */
+        AutostartRequest: {
+            /**
+             * Enable
+             * @default true
+             */
+            enable: boolean;
+        };
+        /**
+         * CreateVMRequest
+         * @description Création directe d'une VM (bouton « + » de la toile). Pas de type d'OS :
+         *     le projet impose son image (Debian/omega préparée).
+         */
+        CreateVMRequest: {
+            /** Name */
+            name?: string | null;
+            /**
+             * Vcpu
+             * @default 4
+             */
+            vcpu: number;
+            /**
+             * Ram Gb
+             * @default 4
+             */
+            ram_gb: number;
+            /**
+             * Disk Gb
+             * @default 20
+             */
+            disk_gb: number;
+            /**
+             * Vram Gb
+             * @default 0
+             */
+            vram_gb: number;
+            /**
+             * Internet
+             * @default false
+             */
+            internet: boolean;
+            /**
+             * Autostart
+             * @default false
+             */
+            autostart: boolean;
+        };
+        /** CreateVMResponse */
+        CreateVMResponse: {
+            /** Vm Id */
+            vm_id: number;
+            /** Vmid */
+            vmid?: number | null;
+            /** Status */
+            status: string;
+            /**
+             * Job
+             * @default provisioning
+             */
+            job: string;
+        };
         /**
          * DNSEntryCreate
          * @description Payload pour créer une entrée DNS.
@@ -574,10 +1329,65 @@ export interface components {
             /** Hostname */
             hostname?: string | null;
         };
+        /** DnsRequest */
+        DnsRequest: {
+            /** Hostname */
+            hostname?: string | null;
+        };
+        /**
+         * DomainRequest
+         * @description Domaine SANS port : http://nom.enspy-gi.gandal → service VM (reverse proxy).
+         */
+        DomainRequest: {
+            /** Hostname */
+            hostname: string;
+            /** Port */
+            port: number;
+            /**
+             * Enable
+             * @default true
+             */
+            enable: boolean;
+        };
+        /** ExposeRequest */
+        ExposeRequest: {
+            /** Service Port */
+            service_port: number;
+            /** Ext Port */
+            ext_port?: number | null;
+            /** Hostname */
+            hostname?: string | null;
+            /**
+             * Proto
+             * @default tcp
+             */
+            proto: string;
+            /**
+             * Enable
+             * @default true
+             */
+            enable: boolean;
+        };
+        /** GpuRequest */
+        GpuRequest: {
+            /**
+             * Vram Mib
+             * @default 4096
+             */
+            vram_mib: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** InternetToggle */
+        InternetToggle: {
+            /**
+             * Enable
+             * @default true
+             */
+            enable: boolean;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -585,6 +1395,18 @@ export interface components {
             username: string;
             /** Password */
             password: string;
+        };
+        /** NetworkLinkRequest */
+        NetworkLinkRequest: {
+            /** Vm Ids */
+            vm_ids: number[];
+            /**
+             * Enable
+             * @default true
+             */
+            enable: boolean;
+            /** Group Name */
+            group_name?: string | null;
         };
         /** PaginatedResponse[DNSEntryRead] */
         PaginatedResponse_DNSEntryRead_: {
@@ -630,10 +1452,10 @@ export interface components {
             /** Size */
             size: number;
         };
-        /** PaginatedResponse[Union[RCreateVMRead, RDeleteVMRead, RAccountRead]] */
-        PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__: {
+        /** PaginatedResponse[Union[RCreateVMRead, RDeleteVMRead, RAccountRead, RDomainRead]] */
+        PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__RDomainRead__: {
             /** Items */
-            items: (components["schemas"]["RCreateVMRead"] | components["schemas"]["RDeleteVMRead"] | components["schemas"]["RAccountRead"])[];
+            items: (components["schemas"]["RCreateVMRead"] | components["schemas"]["RDeleteVMRead"] | components["schemas"]["RAccountRead"] | components["schemas"]["RDomainRead"])[];
             /** Total */
             total: number;
             /** Page */
@@ -669,7 +1491,7 @@ export interface components {
             /** Photo */
             photo?: string | null;
             /** User Id */
-            user_id: number;
+            user_id?: number | null;
         };
         /** PublicationRead */
         PublicationRead: {
@@ -720,6 +1542,8 @@ export interface components {
              * Format: email
              */
             email: string;
+            /** Password */
+            password: string;
             /** Justification */
             justification?: string | null;
             /** Matricule */
@@ -734,9 +1558,9 @@ export interface components {
             /** Content */
             content?: string | null;
             /** Student Id */
-            student_id: number;
+            student_id?: number | null;
             /** Teacher Id */
-            teacher_id: number;
+            teacher_id?: number | null;
             /** Id */
             id: number;
             /**
@@ -770,11 +1594,16 @@ export interface components {
             /** Content */
             content?: string | null;
             /** Teacher Id */
-            teacher_id: number;
+            teacher_id?: number | null;
             /** Size Rom */
             size_rom: number;
             /** Size Ram */
             size_ram: number;
+            /**
+             * N Cpu
+             * @default 2
+             */
+            n_cpu: number;
             /** Os */
             os: string;
         };
@@ -785,9 +1614,9 @@ export interface components {
             /** Content */
             content?: string | null;
             /** Student Id */
-            student_id: number;
+            student_id?: number | null;
             /** Teacher Id */
-            teacher_id: number;
+            teacher_id?: number | null;
             /** Id */
             id: number;
             /**
@@ -804,6 +1633,11 @@ export interface components {
             size_rom: number;
             /** Size Ram */
             size_ram: number;
+            /**
+             * N Cpu
+             * @default 2
+             */
+            n_cpu: number;
             /** Os */
             os: string;
         };
@@ -814,7 +1648,7 @@ export interface components {
             /** Content */
             content?: string | null;
             /** Teacher Id */
-            teacher_id: number;
+            teacher_id?: number | null;
             /** Vm Id */
             vm_id: number;
         };
@@ -825,9 +1659,9 @@ export interface components {
             /** Content */
             content?: string | null;
             /** Student Id */
-            student_id: number;
+            student_id?: number | null;
             /** Teacher Id */
-            teacher_id: number;
+            teacher_id?: number | null;
             /** Id */
             id: number;
             /**
@@ -842,6 +1676,68 @@ export interface components {
             status: "pending" | "validated" | "rejected";
             /** Vm Id */
             vm_id: number;
+        };
+        /** RDomainCreate */
+        RDomainCreate: {
+            /** Object */
+            object: string;
+            /** Content */
+            content?: string | null;
+            /** Teacher Id */
+            teacher_id?: number | null;
+            /** Vm Id */
+            vm_id: number;
+            /** Hostname */
+            hostname: string;
+            /** Port */
+            port: number;
+        };
+        /** RDomainRead */
+        RDomainRead: {
+            /** Object */
+            object: string;
+            /** Content */
+            content?: string | null;
+            /** Student Id */
+            student_id?: number | null;
+            /** Teacher Id */
+            teacher_id?: number | null;
+            /** Id */
+            id: number;
+            /**
+             * Type
+             * @constant
+             */
+            type: "r_domain";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "validated" | "rejected";
+            /** Vm Id */
+            vm_id: number;
+            /** Hostname */
+            hostname: string;
+            /** Port */
+            port: number;
+        };
+        /** ReconcileResult */
+        ReconcileResult: {
+            /** Ok */
+            ok: boolean;
+        };
+        /** ReconfigureRequest */
+        ReconfigureRequest: {
+            /** Name */
+            name?: string | null;
+            /** Vcpu Max */
+            vcpu_max?: number | null;
+            /** Ram Mib */
+            ram_mib?: number | null;
+            /** Disk Gib */
+            disk_gib?: number | null;
+            /** Vram Mib */
+            vram_mib?: number | null;
         };
         /** StudentCreate */
         StudentCreate: {
@@ -860,6 +1756,8 @@ export interface components {
             level: string;
             /** Departement */
             departement: string;
+            /** Supervisor Id */
+            supervisor_id?: number | null;
         };
         /** StudentRead */
         StudentRead: {
@@ -883,6 +1781,13 @@ export interface components {
             level: string;
             /** Departement */
             departement: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Supervisor Id */
+            supervisor_id?: number | null;
         };
         /** StudentUpdate */
         StudentUpdate: {
@@ -906,8 +1811,23 @@ export interface components {
             email: string;
             /** Password */
             password: string;
-            /** Role */
-            role: string;
+            /**
+             * Role
+             * @default Teacher
+             * @enum {string}
+             */
+            role: "Teacher" | "Admin" | "SuperAdmin";
+        };
+        /**
+         * TeacherPublic
+         * @description Vue minimale exposée publiquement (formulaire d'inscription étudiant) :
+         *     juste de quoi choisir son enseignant superviseur, sans données sensibles.
+         */
+        TeacherPublic: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
         };
         /** TeacherRead */
         TeacherRead: {
@@ -927,6 +1847,11 @@ export interface components {
             type: "teacher";
             /** Role */
             role: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
         };
         /** TeacherUpdate */
         TeacherUpdate: {
@@ -935,7 +1860,7 @@ export interface components {
             /** Email */
             email?: string | null;
             /** Role */
-            role?: string | null;
+            role?: ("Teacher" | "Admin" | "SuperAdmin") | null;
         };
         /** TokenResponse */
         TokenResponse: {
@@ -946,6 +1871,55 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** TopologyLink */
+        TopologyLink: {
+            /** Source */
+            source: number;
+            /** Target */
+            target: number;
+            /** Group Name */
+            group_name?: string | null;
+        };
+        /** TopologyResponse */
+        TopologyResponse: {
+            /** Hosts */
+            hosts?: string[];
+            /** Vms */
+            vms?: components["schemas"]["TopologyVM"][];
+            /** Links */
+            links?: components["schemas"]["TopologyLink"][];
+        };
+        /** TopologyVM */
+        TopologyVM: {
+            /** Vmid */
+            vmid: number;
+            /** Name */
+            name?: string | null;
+            /** Node */
+            node?: string | null;
+            /** Status */
+            status: string;
+            /** Ip */
+            ip?: string | null;
+            /**
+             * Internet
+             * @default false
+             */
+            internet: boolean;
+            /** Maxcpu */
+            maxcpu?: number | null;
+            /** Maxmem */
+            maxmem?: number | null;
+            /**
+             * Vram Mib
+             * @default 0
+             */
+            vram_mib: number;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
         };
         /** VMCreate */
         VMCreate: {
@@ -1042,10 +2016,6 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -1140,6 +2110,26 @@ export interface operations {
                     "application/json": components["schemas"]["StudentRead"] | components["schemas"]["TeacherRead"] | {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    list_teachers_public_api_v1_users_teachers_public_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherPublic"][];
                 };
             };
         };
@@ -1304,6 +2294,68 @@ export interface operations {
             };
         };
     };
+    block_student_api_v1_users_students__student_id__block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unblock_student_api_v1_users_students__student_id__unblock_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_teachers_api_v1_users_teachers_get: {
         parameters: {
             query?: {
@@ -1443,6 +2495,68 @@ export interface operations {
                 "application/json": components["schemas"]["TeacherUpdate"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    block_teacher_api_v1_users_teachers__teacher_id__block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teacher_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unblock_teacher_api_v1_users_teachers__teacher_id__unblock_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teacher_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -1816,6 +2930,39 @@ export interface operations {
             };
         };
     };
+    domain_request_api_v1_requetes_domain_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RDomainCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RDomainRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_requetes_api_v1_requetes_get: {
         parameters: {
             query?: {
@@ -1834,7 +2981,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__"];
+                    "application/json": components["schemas"]["PaginatedResponse_Union_RCreateVMRead__RDeleteVMRead__RAccountRead__RDomainRead__"];
                 };
             };
             /** @description Validation Error */
@@ -2024,6 +3171,100 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_pending_publications_api_v1_publications_pending_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_PublicationRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_publication_api_v1_publications__publication_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_publication_api_v1_publications__publication_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2318,6 +3559,574 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DNSEntryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_topology_api_v1_cluster_topology_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopologyResponse"];
+                };
+            };
+        };
+    };
+    create_vm_api_v1_cluster_vms_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVMRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateVMResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_distribution_api_v1_cluster_distribution_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    gpu_status_api_v1_cluster_gpu_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    migrations_api_v1_cluster_migrations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    reconcile_api_v1_cluster_reconcile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconcileResult"];
+                };
+            };
+        };
+    };
+    toggle_internet_api_v1_cluster_vms__vm_id__internet_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vm_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternetToggle"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    toggle_llm_access_api_v1_cluster_vms__vm_id__llm_access_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vm_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternetToggle"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconcile_llm_access_api_v1_cluster_llm_access_reconcile_post: {
+        parameters: {
+            query?: {
+                prune?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_vm_api_v1_cluster_vms__vmid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_vm_api_v1_cluster_vms__vmid__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_vm_api_v1_cluster_vms__vmid__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconfigure_vm_api_v1_cluster_vms__vmid__reconfigure_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconfigureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_gpu_api_v1_cluster_vms__vmid__gpu_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GpuRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_autostart_api_v1_cluster_vms__vmid__autostart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutostartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    expose_service_api_v1_cluster_vms__vmid__expose_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExposeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_domain_api_v1_cluster_vms__vmid__domain_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DomainRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_dns_api_v1_cluster_vms__vmid__dns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vmid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DnsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    network_link_api_v1_cluster_network_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NetworkLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

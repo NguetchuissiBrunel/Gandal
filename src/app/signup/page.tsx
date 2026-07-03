@@ -16,6 +16,9 @@ import {
   Loader2,
   FileText,
   UserCheck,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { apiClient, type TeacherRead } from '@/lib/apiClient';
 import { getApiErrorMessage } from '@/lib/apiError';
@@ -86,9 +89,11 @@ export default function SignupPage() {
   const [level, setLevel] = useState('1');
   const [department, setDepartment] = useState('Informatique');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [justification, setJustification] = useState('');
   const [teacherId, setTeacherId] = useState('');
-  const [teachers, setTeachers] = useState<TeacherRead[]>([]);
+  const [teachers, setTeachers] = useState<{ id: number; username: string }[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
 
   const [loading, setLoading] = useState(false);
@@ -98,7 +103,8 @@ export default function SignupPage() {
   useEffect(() => {
     const loadTeachers = async () => {
       try {
-        const { items } = await apiClient.getTeachers();
+        // Endpoint PUBLIC : l'étudiant n'est pas encore connecté à l'inscription.
+        const items = await apiClient.getTeachersPublic();
         setTeachers(items);
         if (items.length > 0) {
           setTeacherId(String(items[0].id));
@@ -138,6 +144,10 @@ export default function SignupPage() {
       setError('Veuillez remplir tous les champs obligatoires.');
       return;
     }
+    if (password.length < 4) {
+      setError('Veuillez choisir un mot de passe (au moins 4 caractères).');
+      return;
+    }
     const selectedTeacherId = parseInt(teacherId, 10);
     if (!selectedTeacherId) {
       setError('Veuillez sélectionner un responsable pédagogique.');
@@ -149,6 +159,7 @@ export default function SignupPage() {
         object: "Demande d'inscription étudiant",
         nom: username.trim(),
         email: email.trim(),
+        password,
         matricule: matricule.trim(),
         organisation: `${department} — Niveau ${level}`,
         justification: justification.trim(),
@@ -374,7 +385,7 @@ export default function SignupPage() {
                   >
                     {teachers.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.username} ({t.role})
+                        {t.username}
                       </option>
                     ))}
                   </select>
@@ -398,6 +409,35 @@ export default function SignupPage() {
                     className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
+              </div>
+
+              {/* Mot de passe */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-600 block">Mot de passe</label>
+                <div className="relative rounded-xl overflow-hidden group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Choisissez un mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm border border-slate-200 rounded-xl py-3 pl-11 pr-11 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400">Vous l'utiliserez pour vous connecter une fois votre compte validé.</p>
               </div>
 
               {/* Justification */}

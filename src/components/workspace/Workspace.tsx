@@ -36,6 +36,12 @@ interface Props {
  * toile de nœuds (VMs + routeur Internet), création par « + », inspecteur d'actions,
  * et panneaux cluster (admin). Tout est branché sur l'API réelle.
  */
+const ROLE_FR: Record<'student' | 'teacher' | 'admin', string> = {
+  student: 'Étudiant',
+  teacher: 'Enseignant',
+  admin: 'Administrateur',
+};
+
 export default function Workspace({ role, username, onLogout }: Props) {
   const { toast } = useFeedback();
   const isAdmin = role === 'admin' || role === 'teacher';
@@ -116,6 +122,20 @@ export default function Workspace({ role, username, onLogout }: Props) {
 
   const createVm = useCallback(async (v: NewVMValues) => {
     try {
+      // Un ÉTUDIANT ne crée jamais une VM directement : il en fait la DEMANDE,
+      // routée vers son enseignant superviseur (teacher_id calculé côté serveur).
+      if (role === 'student') {
+        await apiClient.createVmRequest({
+          object: `Demande de VM${v.name ? ` « ${v.name} »` : ''}`,
+          content: JSON.stringify({ name: v.name, vram_gb: v.vram_gb, internet: v.internet, autostart: v.autostart }),
+          size_ram: v.ram_gb,
+          size_rom: v.disk_gb,
+          n_cpu: v.vcpu,
+          os: 'debian',
+        } as any);
+        toast('Demande envoyée à votre enseignant pour validation', 'success');
+        return;
+      }
       await apiClient.createClusterVm({
         name: v.name || undefined, vcpu: v.vcpu, ram_gb: v.ram_gb, disk_gb: v.disk_gb,
         vram_gb: v.vram_gb, internet: v.internet, autostart: v.autostart,
@@ -123,7 +143,7 @@ export default function Workspace({ role, username, onLogout }: Props) {
       toast('VM en cours de création — elle apparaîtra dans la toile', 'success');
       setTimeout(() => load(true), 3000);
     } catch (e) { toast(getApiErrorMessage(e), 'danger'); throw e; }
-  }, [load, toast]);
+  }, [role, load, toast]);
 
   const vms = topology?.vms ?? [];
   const stats = useMemo(() => ({
@@ -219,12 +239,12 @@ export default function Workspace({ role, username, onLogout }: Props) {
           </button>
           <button onClick={() => setShowNew(true)}
             className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-cyan-500">
-            <Plus size={15} /> Nouvelle VM
+            <Plus size={15} /> {role === 'student' ? 'Demander une VM' : 'Nouvelle VM'}
           </button>
           <div className="ml-1 flex items-center gap-2 border-l border-slate-200 pl-3 dark:border-[#2a2a2a]">
             <div className="text-right">
               <p className="text-[12px] font-medium leading-none">{username}</p>
-              <p className="text-[10px] uppercase text-slate-400">{role}</p>
+              <p className="text-[10px] uppercase text-slate-400">{ROLE_FR[role]}</p>
             </div>
             <button onClick={onLogout} title="Déconnexion" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-rose-500 dark:hover:bg-[#1c1c1c]">
               <LogOut size={16} />
@@ -313,13 +333,13 @@ export default function Workspace({ role, username, onLogout }: Props) {
           <div className="min-w-0 flex-1">
             {view === 'requests' && <RequestsView role={role} />}
             {view === 'users' && isAdmin && <UsersView />}
-            {view === 'publications' && <PublicationsView />}
+            {view === 'publications' && <PublicationsView role={role} />}
             {view === 'dns' && <DnsView vms={vms} />}
           </div>
         )}
       </div>
 
-      <NewVMModal open={showNew} onClose={() => setShowNew(false)} onCreate={createVm} />
+      <NewVMModal open={showNew} onClose={() => setShowNew(false)} onCreate={createVm} restricted={role === 'student'} />
     </div>
   );
 }

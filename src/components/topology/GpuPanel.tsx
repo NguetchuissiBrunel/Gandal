@@ -77,7 +77,7 @@ function Bar({ label, pct, detail, color }: { label: React.ReactNode; pct: numbe
       <div className="mb-0.5 flex justify-between text-[11px] text-slate-400 dark:text-slate-500">
         <span>{label}</span><span>{detail}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+      <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-[#2a2a2a]">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(pct, 2)}%` }} />
       </div>
     </div>

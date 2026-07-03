@@ -91,7 +91,7 @@ export default function DistributionPanel() {
                     {n.current}/{n.quota} <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">· cible {n.target}</span>
                   </span>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-[#2a2a2a]">
                   <div
                     className={`h-full rounded-full transition-all ${over ? 'bg-amber-400' : under ? 'bg-sky-400' : 'bg-emerald-400'}`}
                     style={{ width: `${Math.max(pct, 6)}%` }}

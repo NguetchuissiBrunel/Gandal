@@ -6,6 +6,13 @@ import { apiClient } from '@/lib/apiClient';
 import { useFeedback } from '@/contexts/FeedbackContext';
 import { getApiErrorMessage } from '@/lib/apiError';
 import { MgmtView, Card, Empty, inputCls, btnPrimary, btnGhost } from './ui';
+import PasswordInput from '@/components/ui/PasswordInput';
+
+const TEACHER_ROLE_FR: Record<string, string> = {
+  Teacher: 'Enseignant',
+  Admin: 'Administrateur',
+  SuperAdmin: 'Super administrateur',
+};
 
 /** Gestion des utilisateurs (admin) : étudiants & enseignants — liste, ajout, suppression. */
 export default function UsersView() {
@@ -58,7 +65,7 @@ export default function UsersView() {
                 <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-[#1c1c1c] dark:bg-[#0a0a0a]">
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{u.username}</td>
                   <td className="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500">{u.email}</td>
-                  {tab === 'students' ? <><td className="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500">{u.matricule}</td><td className="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500">{u.level}</td></> : <td className="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500">{u.role}</td>}
+                  {tab === 'students' ? <><td className="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500">{u.matricule}</td><td className="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500">{u.level}</td></> : <td className="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500">{TEACHER_ROLE_FR[u.role] ?? u.role}</td>}
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => del(u.id)} className="rounded-lg p-1.5 text-slate-400 dark:text-slate-500 hover:bg-rose-50 dark:bg-rose-500/15 hover:text-rose-600 dark:text-rose-300"><Trash2 size={15} /></button>
                   </td>
@@ -83,7 +90,7 @@ function NewUserModal({ tab, onClose, onDone }: { tab: 'students' | 'teachers'; 
     setBusy(true);
     try {
       if (tab === 'students') await apiClient.signupStudent({ username: f.username, email: f.email, password: f.password, matricule: f.matricule, level: f.level, departement: f.departement } as any);
-      else await apiClient.signupTeacher({ username: f.username, email: f.email, password: f.password, role: f.role } as any);
+      else await apiClient.signupTeacher({ username: f.username, email: f.email, password: f.password, role: 'Teacher' } as any);
       toast('Utilisateur créé', 'success'); onDone(); onClose();
     } catch (e) { toast(getApiErrorMessage(e), 'danger'); }
     finally { setBusy(false); }
@@ -97,14 +104,12 @@ function NewUserModal({ tab, onClose, onDone }: { tab: 'students' | 'teachers'; 
         <div className="space-y-3">
           <input className={inputCls} placeholder="Nom d'utilisateur" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} />
           <input className={inputCls} placeholder="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
-          <input className={inputCls} type="password" placeholder="Mot de passe" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
-          {tab === 'students' ? (
+          <PasswordInput inputClassName={inputCls + ' pr-11'} showLockIcon={false} placeholder="Mot de passe" autoComplete="new-password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+          {tab === 'students' && (
             <div className="grid grid-cols-2 gap-2">
               <input className={inputCls} placeholder="Matricule" value={f.matricule} onChange={(e) => setF({ ...f, matricule: e.target.value })} />
               <input className={inputCls} placeholder="Niveau" value={f.level} onChange={(e) => setF({ ...f, level: e.target.value })} />
             </div>
-          ) : (
-            <select className={inputCls} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}><option>Teacher</option><option>Responsable</option></select>
           )}
         </div>
         <div className="mt-4 flex gap-2">

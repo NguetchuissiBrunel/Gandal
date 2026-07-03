@@ -1,7 +1,7 @@
 'use client';
 
-import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { memo, useEffect } from 'react';
+import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Box, Cpu, MemoryStick, Globe, GlobeLock, Loader2, Wifi, Server, Sparkles } from 'lucide-react';
 import { VM_STATUS, type VMNodeData } from './types';
 
@@ -10,11 +10,24 @@ import { VM_STATUS, type VMNodeData } from './types';
  * corps bleu très clair. Handles ronds : gauche = entrée réseau, droite = sortie
  * réseau, haut = uplink Internet. Déplaçable librement sur la toile.
  */
-function VMFlowNodeComponent({ data, selected }: NodeProps) {
-  const { vm, onOpen, onToggleInternet, busy, highlight } = data as VMNodeData;
+function VMFlowNodeComponent({ id, data, selected }: NodeProps) {
+  const { vm, onOpen, onToggleInternet, busy, highlight, peers } = data as VMNodeData;
   const st = VM_STATUS[vm.status];
   const ramGb = vm.maxmem ? Math.round(vm.maxmem / 1024 / 1024 / 1024) : null;
   const vramGb = vm.vram_mib ? Math.round(vm.vram_mib / 1024) : 0;
+  // Accès GPU = dérivé : VM allumée AVEC un budget VRAM. Le lien vert pointillé
+  // apparaît/disparaît tout seul ; il n'est ni créé ni supprimé à la main.
+  const gpuAccess = vm.vram_mib > 0 && vm.status === 'up';
+
+  // m bulles occupées (1 par lien existant) + 1 bulle libre pour le prochain glisser-déposer.
+  const netBubbles: { id: string; occupied: boolean; peer?: number }[] = [
+    ...(peers ?? []).map((p) => ({ id: `net-${p}`, occupied: true, peer: p })),
+    { id: 'net-new', occupied: false },
+  ];
+
+  // Re-mesure des handles quand leur nombre change (sinon React Flow ignore la nouvelle bulle).
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => { updateNodeInternals(id); }, [id, netBubbles.length, vm.internet, gpuAccess, updateNodeInternals]);
 
   return (
     <div
@@ -26,12 +39,35 @@ function VMFlowNodeComponent({ data, selected }: NodeProps) {
         highlight ? 'gandal-blink !border-amber-500 !opacity-100' : '',
       ].join(' ')}
     >
-      <Handle id="net-in" type="target" position={Position.Left}
-        className="!h-3.5 !w-3.5 !rounded-full !border-2 !border-white !bg-blue-600 hover:!bg-blue-800" style={{ left: -8 }} />
-      <Handle id="net-out" type="source" position={Position.Right}
-        className="!h-3.5 !w-3.5 !rounded-full !border-2 !border-white !bg-blue-600 hover:!bg-blue-800" style={{ right: -8 }} />
+      {/* Bulle Internet (haut) : pleine si connectée (le lien s'y pose), pointillée = libre pour glisser vers le routeur */}
       <Handle id="inet" type="source" position={Position.Top}
-        className="!h-3.5 !w-3.5 !rounded-full !border-2 !border-white !bg-slate-900 hover:!bg-black" style={{ top: -8 }} />
+        title={vm.internet ? 'Connectée à Internet' : 'Glisser vers le routeur = Internet'}
+        className={`!h-3.5 !w-3.5 !rounded-full !border-2 ${vm.internet ? '!border-white !bg-emerald-500 hover:!bg-emerald-600' : '!border-dashed !border-slate-400 !bg-white hover:!border-emerald-500 dark:!bg-[#141414]'}`}
+        style={{ top: -8 }} />
+
+      {/* Bulle GPU (bas) : présente UNIQUEMENT si la VM a accès GPU (VRAM>0 + allumée).
+          Verte, non interactive — la connexion est automatique, pas posée à la main. */}
+      {gpuAccess && (
+        <Handle id="gpu" type="source" position={Position.Bottom} isConnectable={false}
+          title={`Accès Pool GPU (${vramGb} Go VRAM)`}
+          className="!h-3.5 !w-3.5 !rounded-full !border-2 !border-white !bg-emerald-500"
+          style={{ bottom: -8 }} />
+      )}
+
+      {/* Bulle d'ENTRÉE réseau (gauche) : zone de dépôt quand on glisse une autre VM
+          dessus pour créer un lien. type="target" → cible naturelle du glisser-déposer. */}
+      <Handle id="net-in" type="target" position={Position.Left}
+        title="Déposer une autre VM ici = lien réseau"
+        className="!h-3.5 !w-3.5 !rounded-full !border-2 !border-dashed !border-blue-400 !bg-white hover:!border-blue-600 dark:!bg-[#141414]"
+        style={{ left: -8 }} />
+
+      {/* Bulles réseau (droite) : 1 par lien existant (pleine, le lien dessus) + 1 libre (pointillée) pour le prochain glisser-déposer */}
+      {netBubbles.map((b, i) => (
+        <Handle key={b.id} id={b.id} type="source" position={Position.Right}
+          title={b.occupied ? `Lien réseau avec vm-${b.peer}` : 'Glisser vers une autre VM = nouveau lien réseau'}
+          className={`!h-3.5 !w-3.5 !rounded-full !border-2 ${b.occupied ? '!border-white !bg-blue-600 hover:!bg-blue-800' : '!border-dashed !border-blue-400 !bg-white hover:!border-blue-600 dark:!bg-[#141414]'}`}
+          style={{ right: -8, top: `${((i + 1) / (netBubbles.length + 1)) * 100}%` }} />
+      ))}
 
       {/* Bandeau d'en-tête (bleu si active, gris si arrêtée) */}
       <div className="flex items-center gap-2 rounded-t-[10px] px-3 py-2.5" style={{ background: st.hex }}>

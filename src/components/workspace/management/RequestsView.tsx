@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Check, X, Plus, RefreshCw, FileText, Loader2 } from 'lucide-react';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient, type TopologyVM } from '@/lib/apiClient';
 import { useFeedback } from '@/contexts/FeedbackContext';
 import { getApiErrorMessage } from '@/lib/apiError';
 import { MgmtView, Card, Badge, Empty, inputCls, btnPrimary, btnGhost } from './ui';
@@ -109,12 +109,29 @@ function NewRequestModal({ onClose, onDone }: { onClose: () => void; onDone: () 
   const [cpu, setCpu] = useState(2);
   const [content, setContent] = useState('');
   const [busy, setBusy] = useState(false);
-  // Domaine
-  const [vms, setVms] = useState<{ id: number; name?: string | null }[]>([]);
+  // Domaine — liste des VMs réelles de l'utilisateur (vrais noms Proxmox).
+  const [vms, setVms] = useState<{ id: number; name: string; ip?: string | null }[]>([]);
   const [vmId, setVmId] = useState<number | ''>('');
   const [hostname, setHostname] = useState('');
   const [port, setPort] = useState(3000);
-  useEffect(() => { apiClient.getVms({ size: 100 }).then((r) => setVms(r.items as any)).catch(() => {}); }, []);
+  useEffect(() => {
+    (async () => {
+      // On croise la table (id DB, nécessaire à la demande) avec la TOPOLOGIE réelle
+      // (vrais noms Proxmox, scopée au propriétaire) jointe sur id_proxmox=vmid.
+      // → on n'affiche que les VMs qui existent vraiment, avec le nom que l'utilisateur connaît.
+      const [vmsRes, topo] = await Promise.all([
+        apiClient.getVms({ size: 100 }).catch(() => ({ items: [], total: 0 })),
+        apiClient.getTopology().catch(() => ({ vms: [] as TopologyVM[] })),
+      ]);
+      const nameByVmid = new Map<number, string>();
+      topo.vms.forEach((t) => { if (t.vmid != null && t.name) nameByVmid.set(t.vmid, t.name); });
+      setVms(
+        (vmsRes.items || [])
+          .filter((v) => v.id_proxmox != null && nameByVmid.has(v.id_proxmox))
+          .map((v) => ({ id: v.id, name: nameByVmid.get(v.id_proxmox as number)!, ip: v.ip_address })),
+      );
+    })();
+  }, []);
 
   const submit = async () => {
     setBusy(true);
@@ -160,7 +177,7 @@ function NewRequestModal({ onClose, onDone }: { onClose: () => void; onDone: () 
             <>
               <select className={inputCls} value={vmId} onChange={(e) => setVmId(e.target.value ? Number(e.target.value) : '')}>
                 <option value="">— Votre VM (qui expose le port) —</option>
-                {vms.map((v) => <option key={v.id} value={v.id}>{v.name || `vm-${v.id}`}</option>)}
+                {vms.map((v) => <option key={v.id} value={v.id}>{v.name}{v.ip ? ` (${v.ip})` : ''}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">

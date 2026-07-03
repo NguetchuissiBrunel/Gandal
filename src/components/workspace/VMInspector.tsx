@@ -39,7 +39,9 @@ export default function VMInspector({ vm, onClose, onChanged }: Props) {
     setName(vm.name ?? '');
     setVcpu(vm.maxcpu ?? 4);
     setRamGb(vm.maxmem ? Math.round(vm.maxmem / 1024 / 1024 / 1024) : 4);
-    setDiskGb(20); setVramGb(0); setHostname('');
+    setDiskGb(vm.disk_gib ?? 20);
+    setVramGb(vm.vram_mib ? Math.round(vm.vram_mib / 1024) : 0);
+    setHostname('');
   }, [vm]);
 
   if (!vm) return null;

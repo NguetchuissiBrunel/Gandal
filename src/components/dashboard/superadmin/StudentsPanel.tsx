@@ -14,6 +14,8 @@ import {
   X,
   Save,
   Eye,
+  Ban,
+  CheckCircle2,
 } from 'lucide-react';
 import EntityDetailModal from '@/components/dashboard/EntityDetailModal';
 import ScrewCard from '@/components/dashboard/superadmin/ScrewCard';
@@ -153,6 +155,25 @@ export default function StudentsPanel() {
       await loadStudents();
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Suppression impossible'));
+      setSuccess('');
+    }
+  };
+
+  const handleToggleActive = async (s: StudentRead) => {
+    const blocking = s.is_active !== false;
+    setError('');
+    setSuccess('');
+    try {
+      if (blocking) {
+        await apiClient.blockStudent(s.id);
+        setSuccess('Compte étudiant bloqué.');
+      } else {
+        await apiClient.unblockStudent(s.id);
+        setSuccess('Compte étudiant activé.');
+      }
+      await loadStudents();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Action impossible'));
       setSuccess('');
     }
   };
@@ -336,7 +357,14 @@ export default function StudentsPanel() {
               ) : (
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-bold text-slate-900">{s.username}</p>
+                    <p className="font-bold text-slate-900 flex items-center gap-2">
+                      {s.username}
+                      {s.is_active === false && (
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          Bloqué / en attente
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-slate-500">{s.email}</p>
                     <p className="text-[10px] text-slate-400 mt-1 font-semibold uppercase">
                       {s.matricule} · Niv. {s.level} · {s.departement}
@@ -358,6 +386,18 @@ export default function StudentsPanel() {
                       title="Modifier"
                     >
                       <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(s)}
+                      className={`p-2 rounded-lg border cursor-pointer ${
+                        s.is_active === false
+                          ? 'border-emerald-200 hover:bg-emerald-50 text-emerald-600'
+                          : 'border-amber-200 hover:bg-amber-50 text-amber-600'
+                      }`}
+                      title={s.is_active === false ? 'Activer / débloquer' : 'Bloquer'}
+                    >
+                      {s.is_active === false ? <CheckCircle2 className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                     </button>
                     <button
                       type="button"
